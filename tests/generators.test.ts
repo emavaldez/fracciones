@@ -250,18 +250,28 @@ describe("recta y notación científica", () => {
 });
 
 describe("pizzas o chocolates", () => {
-  it("las consignas con dibujos hablan de tabletas", async () => {
+  const PIZZA_WORDS = /\bpizzas?\b|pizzer[ií]a|muzza|fugazzeta|jam[oó]n|queso|salsa|harina|\bmasa\b|fermentaci|(?<!célula )de levadura|huerta/i;
+  it("con chocolates, ninguna consigna habla de pizzas", async () => {
     const { withLook, chocoText } = await import("../src/look");
     expect(chocoText("¿Qué fracción de la pizza queda?")).toBe("¿Qué fracción de la tableta queda?");
-    expect(chocoText("Todas las pizzas se cortaron en 8 porciones. La pizzería abrió.")).toBe("Todas las tabletas se dividieron en 8 porciones. La pizzería abrió.");
+    expect(chocoText("Todas las pizzas se cortaron en 8 porciones. La pizzería abrió.")).toBe("Todas las tabletas se dividieron en 8 porciones. La chocolatería abrió.");
     for (const [id, g] of allGens) {
-      if (!/^w[1-4]-/.test(id)) continue;
-      for (let i = 0; i < 40; i++) {
-          const q = withLook(g.make(makeRng(3 + i)), "choco");
-          const txt = allText(q);
-          expect(txt, `${g.id}: ${txt}`).not.toMatch(/\bpizzas?\b/i);
-          validateQuestion(q, `${g.id} (chocolates)`);
+      for (let i = 0; i < 120; i++) {
+        const q = withLook(g.make(makeRng(3 + i)), "choco");
+        const parts = [allText(q), ...(q.sciTraps ?? []).map((t) => t.msg)];
+        if (q.followUp) parts.push(allText(q.followUp));
+        const txt = parts.join(" | ");
+        expect(txt, `${id}: ${txt}`).not.toMatch(PIZZA_WORDS);
+        validateQuestion(q, `${id} (chocolates)`);
       }
     }
+  });
+  it("con chocolates, los sectores y los jefes son de la chocolatería", async () => {
+    const { themedWorlds, TEXTS } = await import("../src/look");
+    const txt = themedWorlds("choco")
+      .flatMap((w) => [w.place, w.topic, ...w.levels.flatMap((l) => [l.name, l.about, l.boss?.name ?? "", l.boss?.line ?? ""])])
+      .concat(Object.values(TEXTS.choco).flat(2).map(String))
+      .join(" | ");
+    expect(txt).not.toMatch(/\bpizzas?\b|pizzer[ií]a|muzza|fugazzeta|horno|masa|levadura|fermentaci|huerta/i);
   });
 });

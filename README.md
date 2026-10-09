@@ -28,8 +28,10 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   equivoca, ve las dos banderitas (dónde iba y dónde la puso) y los saltos contados en la explicación.
 - **Notación científica**: se escribe en dos casilleros, el primer número y el exponente del 10. Si el valor está bien
   pero el primer número no está entre 1 y 10 (por ejemplo `45 · 10⁶`), se lo explica.
-- **Pizzas o chocolates**: en la portada y en el mapa se elige con qué ver las fracciones. Con chocolates, los dibujos
-  son tabletas divididas en porciones, las consignas de esos dibujos dicen "tableta" y los puntajes y vidas son chocolates.
+- **Pizzería o chocolatería**: en la portada y en el mapa se elige "Pizzas" o "Chocolates". Con chocolates cambia todo:
+  el juego pasa a ser la Chocolatería La Fracción, con otros colores, otros nombres de sectores y jefes (El Baño María,
+  La Fábrica de Bombones, La Plantación de Cacao…), tabletas divididas en porciones en vez de pizzas, consignas y
+  enunciados de chocolatería, y chocolates como puntaje y como vidas.
 - **Ejercicios generados al azar**: cada partida es distinta.
 - **Explicación de errores**: si la respuesta coincide con un error típico (sumar denominadores, multiplicar en vez de dividir, elevar solo el numerador, olvidarse del signo, etc.), el juego dice exactamente qué pasó. Siempre muestra la resolución paso a paso y la regla para recordar.
 - **Revancha**: si se erra una comanda, más adelante aparece otra parecida.
@@ -95,7 +97,7 @@ src/
     check.ts   corrección de respuestas y diagnóstico de errores
     pizarra.ts la pizarra: la cuenta como árbol, qué pedazos se pueden resolver solos, pasar al otro lado, pistas
   math/sci.ts  notación científica exacta (normalizar, comparar, decimales con miles separados)
-  look.tsx     pizzas o chocolates
+  look.tsx     pizzería o chocolatería: textos, nombres de sectores y jefes, y cómo se reescriben las consignas
   components/  dibujo de fracciones/potencias/raíces, pizzas y tabletas, recta numérica, teclado
   screens/     portada, mapa, partida, resultados
 tests/         pruebas de los generadores

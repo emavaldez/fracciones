@@ -1,14 +1,15 @@
 import { OnePizza, SingleSlice } from "../components/Pizza";
 import { Flourish } from "../components/Flourish";
-import { LookToggle, type Look } from "../look";
+import { LookToggle, TEXTS, type Look } from "../look";
 
 export function Home({ onStart, look, setLook }: { onStart: () => void; look: Look; setLook: (l: Look) => void }) {
+  const t = TEXTS[look];
   return (
     <div className="screen home">
       <div className="home-sign">
         <Flourish side="left" />
         <div className="home-sign-text">
-          <span className="home-pizzeria">Pizzería</span>
+          <span className="home-pizzeria">{t.shop}</span>
           <h1 className="sign sign-xl">La Fracción</h1>
         </div>
         <Flourish side="right" />
@@ -27,12 +28,12 @@ export function Home({ onStart, look, setLook }: { onStart: () => void; look: Lo
         </div>
       </div>
 
-      <p className="home-lead">Atendé la pizzería resolviendo fracciones. Cada sector de la cocina es un tema distinto.</p>
+      <p className="home-lead">{t.lead}</p>
 
       <LookToggle look={look} setLook={setLook} />
 
       <button type="button" className="btn btn-primary btn-big" onClick={onStart}>
-        Abrir la pizzería
+        {t.open}
       </button>
 
       <ul className="home-how">

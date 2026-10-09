@@ -1,11 +1,11 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Home } from "./screens/Home";
 import { MapScreen } from "./screens/MapScreen";
 import { Play, type LevelResult } from "./screens/Play";
 import { Results } from "./screens/Results";
 import { setSoundEnabled } from "./sound";
 import { findLevel } from "./game/worlds";
-import { LookContext, loadLook, saveLook, type Look } from "./look";
+import { LookContext, TEXTS, loadLook, saveLook, type Look } from "./look";
 
 // Galería de ejercicios: solo en desarrollo (npm run dev → #galeria).
 const Gallery = import.meta.env.DEV ? lazy(() => import("./screens/Gallery")) : null;
@@ -34,6 +34,12 @@ export default function App() {
     saveLook(l);
     setLookState(l);
   }, []);
+  // Colores, título y barra del navegador según pizzas o chocolates.
+  useEffect(() => {
+    document.documentElement.dataset.look = look;
+    document.title = TEXTS[look].title;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", TEXTS[look].themeColor);
+  }, [look]);
 
   const setSound = useCallback((v: boolean) => {
     setSoundEnabled(v);

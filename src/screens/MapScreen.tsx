@@ -1,23 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { WORLDS } from "../game/worlds";
 import { RECIPES } from "../game/recipes";
 import type { World } from "../game/types";
 import { MathView, RichText } from "../components/MathView";
 import { PizzaRating } from "../components/PizzaRating";
 import { NumberLine } from "../components/NumberLine";
-import { LookToggle, prizeWord, type Look } from "../look";
+import { LookToggle, TEXTS, prizeWord, themedWorlds, type Look } from "../look";
 
-export const RANKS: [number, string][] = [
-  [0, "Aprendiz de la masa"],
-  [100, "Ayudante del horno"],
-  [300, "Mano de muzza"],
-  [700, "Estrella del mostrador"],
-  [1500, "Leyenda de la fugazzeta"],
-];
-
-export function rankFor(coins: number) {
-  let r = RANKS[0][1];
-  for (const [min, name] of RANKS) if (coins >= min) r = name;
+export function rankFor(coins: number, look: Look) {
+  const ranks = TEXTS[look].ranks;
+  let r = ranks[0][1];
+  for (const [min, name] of ranks) if (coins >= min) r = name;
   return r;
 }
 
@@ -98,7 +90,7 @@ export function MapScreen({
           <span className="sign sign-sm">La Fracción</span>
         </button>
         <div className="map-stats">
-          <span className="map-rank">{rankFor(coins)}</span>
+          <span className="map-rank">{rankFor(coins, look)}</span>
           <span className="coins" aria-label={`Propinas: ${coins} pesos`}>
             <span className="coin" aria-hidden="true">$</span>
             {coins}
@@ -119,13 +111,13 @@ export function MapScreen({
         </div>
       </header>
 
-      <p className="map-intro">Elegí un sector de la cocina. Todos los niveles están abiertos.</p>
+      <p className="map-intro">{TEXTS[look].mapIntro}</p>
       <div className="map-look">
         <LookToggle look={look} setLook={setLook} />
       </div>
 
       <ol className="route">
-        {WORLDS.map((w, i) => {
+        {themedWorlds(look).map((w, i) => {
           const got = w.levels.reduce((s, l) => s + (best[l.id] ?? 0), 0);
           const max = w.levels.length * 3;
           return (

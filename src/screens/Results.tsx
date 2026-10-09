@@ -1,16 +1,18 @@
 import { useEffect } from "react";
 import { PizzaRating } from "../components/PizzaRating";
 import { Confetti } from "../components/Confetti";
-import { findLevel, nextLevel } from "../game/worlds";
+import { nextLevel } from "../game/worlds";
 import type { LevelResult } from "./Play";
 import { sfx } from "../sound";
-import { useLook } from "../look";
+import { findThemed, useLook } from "../look";
 
 export function Results({ result, onAgain, onNext, onMap }: { result: LevelResult; onAgain: () => void; onNext: (id: string) => void; onMap: () => void }) {
-  const { level, world } = findLevel(result.levelId)!;
-  const nxt = nextLevel(result.levelId);
+  const look = useLook();
+  const choco = look === "choco";
+  const { level, world } = findThemed(result.levelId, look)!;
+  const nextRaw = nextLevel(result.levelId);
+  const nxt = nextRaw ? findThemed(nextRaw.id, look)!.level : null;
   const boss = level.boss;
-  const choco = useLook() === "choco";
 
   useEffect(() => {
     if (result.lost) sfx.lose();

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MathView, RichText } from "../components/MathView";
 import { Pizzas, OnePizza, LifeIcon } from "../components/Pizza";
-import { useLook, withLook } from "../look";
+import { TEXTS, findThemed, useLook, withLook } from "../look";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
 import { NumberLine } from "../components/NumberLine";
 import { PizarraPath, PizarraStage, type PzSummary } from "../components/Pizarra";
 import { Steps } from "../components/Steps";
 import { check, draftFor, validate, type Draft, type Verdict } from "../game/check";
 import { buildQueue, signature, similar } from "../game/session";
-import { findLevel } from "../game/worlds";
 import type { Question } from "../game/types";
 import { makeRng } from "../math/rng";
 import { dec, fr, mixedOf, N, toText } from "../math/expr";
@@ -43,8 +42,6 @@ const CUSTOMERS: [string, string][] = [
   ["Pato", "👦"],
   ["Coco", "🧑‍🍳"],
 ];
-const GOOD = ["¡Al punto!", "¡Salió perfecta!", "¡Qué muzza!", "¡Crocante!", "¡Impecable!", "¡De diez!"];
-const BAD = ["¡Se quemó!", "Esa vuelve a la cocina", "Uy, se pasó de horno", "Le faltó cocción"];
 const MAX_EXTRA = 3;
 
 function CorrectAnswer({ q }: { q: Question }) {
@@ -78,11 +75,11 @@ function CorrectAnswer({ q }: { q: Question }) {
 }
 
 export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: () => void; onFinish: (r: LevelResult) => void }) {
-  const found = findLevel(levelId)!;
-  const { level, world } = found;
+  const look = useLook();
+  const { level, world } = findThemed(levelId, look)!;
   const rng = useMemo(() => makeRng(), []);
   const isBoss = !!level.boss;
-  const look = useLook();
+  const { good: GOOD, bad: BAD } = TEXTS[look];
 
   const [started, setStarted] = useState(!isBoss);
   const [queue, setQueue] = useState<Question[]>(() => buildQueue(level, rng).map((x) => withLook(x, look)));
@@ -116,8 +113,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const order = useMemo(() => queue.slice(0, idx + 1).filter((x) => !followUps.current.has(x)).length - 1, [queue, idx]);
   const customer = CUSTOMERS[(order * 5 + offset) % CUSTOMERS.length];
   const table = 1 + ((order * 7 + offset) % 20);
-  const goodWord = useMemo(() => GOOD[(idx + coins) % GOOD.length], [idx, coins]);
-  const badWord = useMemo(() => BAD[idx % BAD.length], [idx]);
+  const goodWord = GOOD[(idx + coins) % GOOD.length];
+  const badWord = BAD[idx % BAD.length];
 
   const resetInput = useCallback((next: Question) => {
     setDraft(draftFor(next.answer));

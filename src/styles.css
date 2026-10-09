@@ -2902,3 +2902,26 @@ button {
     padding: 8px 11px;
   }
 }
+
+/* ---------------- Chocolatería: otros colores ---------------- */
+:root[data-look="choco"] {
+  --wall: #3d2417;
+  --wall-2: #4b2d1d;
+  --wall-deep: #26150c;
+  --tile-line: rgba(255, 236, 214, 0.06);
+  --tomato: #d4446c;
+  --tomato-deep: #9b2849;
+  --cheese: #f3bd52;
+  --cheese-deep: #cf9327;
+  --crust: #b5773f;
+  --crust-deep: #86522a;
+  --on-wall: #f8ead8;
+  --on-wall-soft: #d9c1aa;
+}
+:root[data-look="choco"] .cf-2 {
+  background: var(--choco);
+  border-radius: 3px;
+}
+:root[data-look="choco"] .sheet-backdrop {
+  background: rgba(24, 12, 5, 0.58);
+}
