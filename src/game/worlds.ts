@@ -1,0 +1,211 @@
+import type { GenEntry, Level, World } from "./types";
+import * as w1 from "./gen/w1";
+import * as w2 from "./gen/w2";
+import * as w3 from "./gen/w3";
+import * as w4 from "./gen/w4";
+import * as w5 from "./gen/w5";
+import * as w6 from "./gen/w6";
+import * as w7 from "./gen/w7";
+import * as w8 from "./gen/w8";
+import * as w9 from "./gen/w9";
+
+const lv = (id: string, name: string, about: string, gens: GenEntry[], count = 8): Level => ({ id, name, about, gens, count });
+const boss = (id: string, name: string, emoji: string, line: string, gens: GenEntry[], count = 10): Level => ({
+  id,
+  name,
+  about: "Jefe final: 3 vidas y todo lo del sector mezclado.",
+  gens,
+  count,
+  boss: { name, emoji, line, lives: 3 },
+});
+
+export const WORLDS: World[] = [
+  {
+    id: "mostrador",
+    place: "El Mostrador",
+    topic: "Leer, simplificar y comparar fracciones",
+    emoji: "🍕",
+    levels: [
+      lv("1-1", "Porciones", "¿Qué fracción de pizza hay?", [w1.leerPizza, w1.elegirPizza, w1.leerPizzaImpropia]),
+      lv("1-2", "Equivalentes", "Fracciones que valen lo mismo", [w1.equivFaltante, w1.equivElegir]),
+      lv("1-3", "Simplificar y comparar", "Fracción irreducible y cuál es mayor", [w1.simplificar, w1.comparar]),
+      boss("1-J", "Doña Porciones", "👵", "Yo pedí la mitad y me trajeron dos cuartos. ¿Me están cargando?", [
+        w1.compararNeg,
+        w1.simplificar,
+        w1.leerPizzaImpropia,
+        w1.equivElegir,
+        w1.equivFaltante,
+      ]),
+    ],
+  },
+  {
+    id: "amasado",
+    place: "La Mesa de Amasado",
+    topic: "Expresar de otra forma: mixtos, decimales y periódicos",
+    emoji: "🫓",
+    levels: [
+      lv("2-1", "Números mixtos", "Enteros y fracción, ida y vuelta", [w2.impropiaAMixto, w2.mixtoAImpropia]),
+      lv("2-2", "Decimales", "De fracción a decimal y al revés", [w2.decimalAFraccion, w2.fraccionADecimal]),
+      lv("2-3", "Periódicos", "Decimales que no terminan nunca", [w2.periodicoAFraccion, w2.finitoOPeriodico, w2.elegirPeriodico]),
+      boss("2-J", "El Señor Mixto", "🎩", "No acepto fracciones impropias. Y los números que no terminan me ponen nervioso.", [
+        w2.impropiaAMixto,
+        w2.mixtoAImpropia,
+        w2.decimalAFraccion,
+        w2.fraccionADecimal,
+        w2.periodicoAFraccion,
+        w2.finitoOPeriodico,
+      ]),
+    ],
+  },
+  {
+    id: "horno",
+    place: "El Horno",
+    topic: "Suma y resta",
+    emoji: "🔥",
+    levels: [
+      lv("3-1", "Mismo denominador", "Sumar y restar porciones iguales", [w3.sumaMismoDen]),
+      lv("3-2", "Distinto denominador", "Buscar el denominador común", [w3.sumaDistintoDen]),
+      lv("3-3", "Negativos y mixtos", "Signos, enteros y números mixtos", [w3.sumaNegativos, w3.sumaMixtos, w3.sumaTres]),
+      boss("3-J", "El Inspector del Horno", "🕵️", "Una pizza mal sumada es una pizza quemada.", [
+        w3.sumaDistintoDen,
+        w3.sumaNegativos,
+        w3.sumaMixtos,
+        w3.sumaTres,
+      ]),
+    ],
+  },
+  {
+    id: "tabla",
+    place: "La Tabla de Cortar",
+    topic: "Multiplicación y división",
+    emoji: "🪵",
+    levels: [
+      lv("4-1", "Multiplicar", "Arriba por arriba, abajo por abajo", [w4.multiplicar, w4.fraccionDe]),
+      lv("4-2", "Dividir", "Multiplicar por la inversa", [w4.dividir, w4.inverso]),
+      lv("4-3", "Con signos", "Negativos y cuentas largas", [w4.multDivSignos, w4.multTres]),
+      boss("4-J", "El Rey del Corte", "🤴", "Corto la pizza en partes iguales. Vos decime cuánto da.", [
+        w4.multiplicar,
+        w4.fraccionDe,
+        w4.dividir,
+        w4.multDivSignos,
+        w4.multTres,
+      ]),
+    ],
+  },
+  {
+    id: "fermentacion",
+    place: "La Cámara de Fermentación",
+    topic: "Potencias y exponentes",
+    emoji: "🫧",
+    levels: [
+      lv("5-1", "Exponente natural", "Elevar arriba y abajo, y el signo", [w5.potenciaNatural, w5.signoPotencia]),
+      lv("5-2", "Exponente 0 y negativo", "Lo que se da vuelta", [w5.potenciaCeroNeg]),
+      lv("5-3", "Propiedades", "Sumar, restar y multiplicar exponentes", [w5.propiedadesExponente, w5.propiedadesValor]),
+      boss("5-J", "La Levadura Gigante", "👾", "¡Crezco al cuadrado, al cubo y más! ¿Me podés frenar?", [
+        w5.potenciaNatural,
+        w5.signoPotencia,
+        w5.potenciaCeroNeg,
+        w5.propiedadesExponente,
+        w5.propiedadesValor,
+      ]),
+    ],
+  },
+  {
+    id: "huerta",
+    place: "La Huerta",
+    topic: "Raíces",
+    emoji: "🌱",
+    levels: [
+      lv("6-1", "Raíz cuadrada", "Fracciones y decimales", [w6.raizCuadrada, w6.raizDecimal]),
+      lv("6-2", "Raíz cúbica y otras", "Índices impares, pares y negativos", [w6.raizCubica, w6.raizExiste]),
+      lv("6-3", "Propiedades y trampas", "Lo que se puede y lo que no", [w6.raizProducto, w6.raizSumaTrampa, w6.raizMixto]),
+      boss("6-J", "La Zanahoria Rebelde", "🥕", "Mis raíces son profundas. A ver si las encontrás.", [
+        w6.raizCuadrada,
+        w6.raizDecimal,
+        w6.raizCubica,
+        w6.raizExiste,
+        w6.raizSumaTrampa,
+        w6.raizMixto,
+      ]),
+    ],
+  },
+  {
+    id: "cocina",
+    place: "La Cocina a Full",
+    topic: "Operaciones combinadas",
+    emoji: "🍳",
+    levels: [
+      lv("7-1", "Separar en términos", "¿Qué se resuelve primero?", [w7.combSumaProducto, w7.combParentesis]),
+      lv("7-2", "Con potencias y raíces", "Cada término a su tiempo", [w7.combPotRaiz, w7.combMixta]),
+      lv("7-3", "Paréntesis y corchetes", "De adentro hacia afuera", [w7.combCorchetes, w7.combParentesis]),
+      boss("7-J", "La Hora Pico", "⏰", "¡Veinte comandas al mismo tiempo! Orden, orden, orden.", [
+        w7.combSumaProducto,
+        w7.combPotRaiz,
+        w7.combMixta,
+        w7.combCorchetes,
+      ]),
+    ],
+  },
+  {
+    id: "receta",
+    place: "La Receta Secreta",
+    topic: "Ecuaciones",
+    emoji: "🔐",
+    levels: [
+      lv("8-1", "Un paso", "Pasar al otro lado", [w8.ecuacionUnPaso]),
+      lv("8-2", "Dos pasos", "Despejar de afuera hacia adentro", [w8.ecuacionDosPasos]),
+      lv("8-3", "x de los dos lados", "Y con potencias y raíces", [w8.ecuacionDosMiembros, w8.ecuacionPotRaiz]),
+      boss("8-J", "El Guardián de la Receta", "🧙", "La receta de la muzza perfecta está bajo llave. La llave es x.", [
+        w8.ecuacionUnPaso,
+        w8.ecuacionDosPasos,
+        w8.ecuacionDosMiembros,
+        w8.ecuacionPotRaiz,
+      ]),
+    ],
+  },
+  {
+    id: "delivery",
+    place: "El Delivery",
+    topic: "Problemas con enunciado",
+    emoji: "🛵",
+    levels: [
+      lv("9-1", "Problemas de cuentas", "Leer, pensar y calcular", [w9.problemaCalculo]),
+      lv("9-2", "Plantear ecuaciones", "Traducir el enunciado y resolver", [w9.problemaEcuacion, w9.problemaEdades], 5),
+      lv("9-3", "Problemas desafiantes", "Varios pasos", [w9.problemaDelResto, w9.problemaCalculo, w9.problemaEcuacion], 7),
+      boss(
+        "9-J",
+        "El Gran Crítico",
+        "🧐",
+        "Probé todas las pizzerías del barrio. Si me convencés, te doy cinco estrellas.",
+        [
+          w1.compararNeg,
+          w2.periodicoAFraccion,
+          w3.sumaTres,
+          w4.multTres,
+          w5.propiedadesValor,
+          w6.raizSumaTrampa,
+          w7.combCorchetes,
+          w8.ecuacionDosPasos,
+          w9.problemaCalculo,
+          w9.problemaDelResto,
+        ],
+        12,
+      ),
+    ],
+  },
+];
+
+export function findLevel(levelId: string) {
+  for (const w of WORLDS) {
+    const i = w.levels.findIndex((l) => l.id === levelId);
+    if (i >= 0) return { world: w, level: w.levels[i], index: i };
+  }
+  return null;
+}
+
+/** El nivel que sigue (o null si es el último). */
+export function nextLevel(levelId: string) {
+  const all = WORLDS.flatMap((w) => w.levels);
+  const i = all.findIndex((l) => l.id === levelId);
+  return i >= 0 && i < all.length - 1 ? all[i + 1] : null;
+}
