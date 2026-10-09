@@ -2282,3 +2282,262 @@ button {
 .bc-error-retry {
   font-weight: 700;
 }
+
+/* ---------------- Pizarra: la cuenta entera, para marcar pedazos ---------------- */
+
+.pz-eq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 4px;
+  padding: 6px 0;
+  /* el dedo marca, no desplaza la pantalla */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pz-eq.is-eq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.pz-eq.is-eq > .pz-side:first-child {
+  justify-content: flex-end;
+}
+.pz-eq.is-eq > .pz-side:last-child {
+  justify-content: flex-start;
+}
+.pz-eq.is-fresh {
+  animation: pz-in 0.5s ease both;
+}
+@keyframes pz-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pz-eq.is-solved .pz-side {
+  background: var(--ok-soft);
+  border-radius: 12px;
+}
+.pz-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  row-gap: 6px;
+  min-width: 0;
+}
+.pz-cell {
+  display: inline-flex;
+  align-items: stretch;
+}
+.pz-eqsign {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.8rem;
+  padding: 0 4px;
+  color: var(--ink);
+}
+.tk {
+  position: relative;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 2px;
+  min-height: 52px;
+  min-width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-math);
+  font-weight: 600;
+  touch-action: none;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+.tk:disabled {
+  cursor: default;
+}
+.tk .m {
+  pointer-events: none;
+}
+.tk .m-md {
+  font-size: 1.35rem;
+}
+.tk-opv {
+  font-size: 1.5rem;
+  padding: 0 5px;
+}
+.tk-xv {
+  font-style: italic;
+  font-size: 1.55rem;
+  padding: 0 2px;
+}
+.tk.is-sel {
+  background: #ffe39a;
+}
+.tk.is-sel-a {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+.tk.is-sel-b {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+.tk.is-hint {
+  box-shadow: inset 0 -4px 0 var(--cheese-deep);
+}
+.tk:focus-visible {
+  outline: 3px solid var(--celeste);
+  outline-offset: -3px;
+}
+.pz-par,
+.pz-root,
+.pz-base {
+  display: inline-flex;
+  align-items: stretch;
+}
+.pz-in {
+  display: inline-flex;
+  align-items: center;
+}
+.tk-paren {
+  width: 14px;
+  min-width: 14px;
+  min-height: 0;
+  padding: 4px 1px;
+  align-self: stretch;
+}
+/* El paréntesis no define la altura: se estira a lo que encierra */
+.tk-paren svg,
+.pz-deco svg {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 6px;
+  bottom: 6px;
+  width: calc(100% - 4px);
+  height: calc(100% - 12px);
+  overflow: visible;
+}
+.tk-paren path,
+.pz-deco path,
+.tk-rootsign path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pz-deco {
+  position: relative;
+  display: inline-flex;
+  width: 10px;
+  align-self: stretch;
+  color: var(--ink);
+}
+.pz-pow {
+  display: inline-flex;
+  align-items: flex-start;
+}
+.tk-exp {
+  min-height: 30px;
+  min-width: 24px;
+  align-self: flex-start;
+}
+.tk-expv {
+  font-size: 1rem;
+}
+.tk-rootsign {
+  width: 24px;
+  min-width: 24px;
+  padding: 0;
+  align-self: stretch;
+}
+.tk-rootsign svg {
+  position: absolute;
+  left: 6px;
+  right: 0;
+  top: 3px;
+  bottom: 2px;
+  width: calc(100% - 6px);
+  height: calc(100% - 5px);
+}
+.tk-rooti {
+  position: absolute;
+  left: 1px;
+  top: 4px;
+  font-size: 0.7rem;
+}
+.pz-rad {
+  display: inline-flex;
+  align-items: center;
+  border-top: 2.5px solid var(--ink);
+  margin-top: 3px;
+  padding: 0 2px;
+}
+.bc-xsuffix {
+  font-family: var(--font-math);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.bc-row-top {
+  justify-content: flex-end;
+}
+.bc-row-top > .bc-back {
+  flex: none;
+  color: var(--paper);
+  min-height: 40px;
+}
+.pz-explain {
+  margin-top: 8px;
+  background: #fdeee9;
+  border-left: 5px solid var(--bad);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+.pz-explain p {
+  margin: 0;
+}
+.pz-explain-head {
+  font-weight: 700;
+}
+.pz-demo {
+  display: grid;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+.pz-demo-row {
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.pz-explain-next {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 360px) {
+  .tk .m-md {
+    font-size: 1.15rem;
+  }
+  .tk-opv {
+    font-size: 1.25rem;
+    padding: 0 3px;
+  }
+  .tk-xv {
+    font-size: 1.35rem;
+  }
+  .pz-eqsign {
+    font-size: 1.5rem;
+  }
+}

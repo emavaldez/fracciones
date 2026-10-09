@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MathView, RichText } from "../components/MathView";
 import { Pizzas, OnePizza } from "../components/Pizza";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
-import { BoardPath, BoardStage, type BoardSummary } from "../components/EquationBoard";
+import { PizarraPath, PizarraStage, type PzSummary } from "../components/Pizarra";
 import { Steps } from "../components/Steps";
 import { check, emptyDraft, validate, type Draft, type Verdict } from "../game/check";
 import { buildQueue, signature, similar } from "../game/session";
@@ -90,14 +90,14 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const stats = useRef({ correct: 0, wrong: 0, helped: 0, coins: 0, streak: 0, best: 0 });
   // Ecuaciones: mesa de trabajo paso a paso, salvo que el jugador elija escribir el resultado directo.
   const [direct, setDirect] = useState(false);
-  const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
+  const [boardSummary, setPzSummary] = useState<PzSummary | null>(null);
   const [coins, setCoins] = useState(0);
   const [streak, setStreak] = useState(0);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
 
   const q = queue[idx];
-  const boardMode = !!q?.board && !direct;
+  const boardMode = !!q?.pizarra && !direct;
   // Las segundas partes de un problema siguen siendo del mismo cliente.
   const followUps = useRef(new WeakSet<Question>());
   const offset = useMemo(() => Math.floor(Math.random() * CUSTOMERS.length), []);
@@ -117,7 +117,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     setVerdict(null);
     setRequeued(false);
     setDirect(false);
-    setBoardSummary(null);
+    setPzSummary(null);
     setPhase("answer");
   }, []);
 
@@ -176,10 +176,10 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   }, [phase, q, draft, choice, queue, idx, isBoss, hint, extra, level, rng]);
 
   const finishBoard = useCallback(
-    (sum: BoardSummary) => {
+    (sum: PzSummary) => {
       if (phase !== "answer" || !q) return;
       const s = stats.current;
-      setBoardSummary(sum);
+      setPzSummary(sum);
       setVerdict({ correct: true, diagnosis: null, given: "" });
       setPhase("feedback");
       s.correct++;
@@ -340,7 +340,9 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
           <RichText text={q.story} />
         </p>
       )}
-      <h2 className="ticket-title">{boardMode ? (q.title === "Despejá x" ? "Despejá x paso a paso" : q.title) : q.title}</h2>
+      <h2 className="ticket-title">
+        {boardMode ? (q.pizarra!.kind === "calc" ? "Resolvelo por partes" : q.title === "Despejá x" ? "Despejá x por partes" : q.title) : q.title}
+      </h2>
     </>
   );
 
@@ -381,9 +383,9 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
       </div>
 
       {boardMode ? (
-        <BoardStage
+        <PizarraStage
           key={idx}
-          spec={q.board!}
+          spec={q.pizarra!}
           header={ticketHead}
           hintOn={hint}
           disabled={phase !== "answer"}
@@ -473,7 +475,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                   {warn}
                 </p>
               )}
-              {q.board && direct && phase === "answer" && (
+              {q.pizarra && direct && phase === "answer" && (
                 <button type="button" className="btn btn-ghost btn-small back-to-board" onClick={() => setDirect(false)}>
                   Mejor resolverlo paso a paso
                 </button>
@@ -565,7 +567,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                 <>
                   <div className="fb-how">
                     <h3>Tus pasos</h3>
-                    <BoardPath history={boardSummary.history} />
+                    <PizarraPath history={boardSummary.history} />
                   </div>
                   {boardSummary.mistakes.length > 0 && (
                     <div className="fb-diagnosis">

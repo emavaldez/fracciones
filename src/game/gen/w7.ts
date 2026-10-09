@@ -1,8 +1,9 @@
 // Mundo 7 · La Cocina a Full: operaciones combinadas.
 import { F, Fraction, lcm } from "../../math/fraction";
-import { N, Q, fr, par, pow, root, row, type Expr } from "../../math/expr";
+import { N, Q, fr, pow, root, row, type Expr } from "../../math/expr";
 import { cleanTraps, gen, nice, retry } from "../helpers";
 import type { Question, Step, Trap } from "../types";
+import { normSide, tPar, tPow, tProd, tRoot, tSum, tn, toExpr, type T } from "../pizarra";
 
 type AOp = "+" | "-" | "·" | ":";
 
@@ -37,12 +38,14 @@ function ok(f: Fraction) {
   return nice(f, 36, 72);
 }
 
-function finish(math: Expr, ans: Fraction, traps: Trap[], hint: string, story?: string, steps: Step[] = []): Question {
+function finish(tree: T, ans: Fraction, traps: Trap[], hint: string, story?: string, steps: Step[] = []): Question {
+  const t = normSide(tree);
   return {
     gen: "",
     title: "Resolvé el cálculo combinado",
     story,
-    math: row(math, "=", Q()),
+    math: row(toExpr(t), "=", Q()),
+    pizarra: { kind: "calc", sides: [t] },
     answer: { kind: "fraction", value: ans },
     traps: cleanTraps(ans, traps),
     hint: [{ text: hint }],
@@ -68,7 +71,7 @@ export const combSumaProducto = gen("w7-suma-producto", (r) => {
     if (!ok(p) || !ok(ans)) return null;
     const first = r.chance(0.5);
     // Variante: el producto puede ir primero (b·c ± a)
-    const math = first ? row(fr(a), op1, fr(b), op2, fr(c)) : row(fr(b), op2, fr(c), op1, fr(a));
+    const math = first ? tSum(tn(a), op1, tProd(tn(b), op2, tn(c))) : tSum(tProd(tn(b), op2, tn(c)), op1, tn(a));
     const ans2 = first ? ans : apply(p, op1, a);
     if (!ok(ans2)) return null;
     const steps: Step[] = [
@@ -104,7 +107,7 @@ export const combParentesis = gen("w7-parentesis", (r) => {
       { text: "Primero lo que está entre paréntesis:", math: opRow(a, op1, b) },
       { text: `Después ${opWord[op2]}:`, math: opRow(s, op2, c) },
     ];
-    return finish(row(par(row(fr(a), op1, fr(b))), op2, fr(c)), ans, [{ value: wrong, msg: IGNORE_PARENS }], "Empezá por el paréntesis.", undefined, steps);
+    return finish(tProd(tPar(tSum(tn(a), op1, tn(b))), op2, tn(c)), ans, [{ value: wrong, msg: IGNORE_PARENS }], "Empezá por el paréntesis.", undefined, steps);
   });
 });
 
@@ -128,7 +131,9 @@ export const combPotRaiz = gen("w7-potencia-raiz", (r) => {
       { text: "Raíz:", math: row(R, "=", fr(rv)) },
       { text: `Ahora ${opWord[op]}:`, math: order ? opRow(pv, op, rv) : opRow(rv, op, pv) },
     ];
-    const math = order ? row(P, op, R) : row(R, op, P);
+    const PT = tPow(tn(p), e);
+    const RT = tRoot(2, tn(q));
+    const math = order ? tSum(PT, op, RT) : tSum(RT, op, PT);
     const traps: Trap[] = [];
     if (e > 0 && p.d !== 1 && Math.abs(p.n) !== 1) traps.push({ value: order ? apply(F(p.n ** e, p.d), op, rv) : apply(rv, op, F(p.n ** e, p.d)), msg: "En la potencia elevaste solo el numerador. Va arriba Y abajo." });
     if (e < 0) traps.push({ value: order ? apply(p.pow(-e), op, rv) : apply(rv, op, p.pow(-e)), msg: "Te faltó dar vuelta la base en la potencia de exponente negativo." });
@@ -150,7 +155,7 @@ export const combMixta = gen("w7-mixta", (r) => {
       const ans = apply(m, op, ci);
       if (!ok(ans) || !ok(m)) return null;
       const q = finish(
-        row(fr(a), "·", fr(b), op, pow(fr(c), -1)),
+        tSum(tProd(tn(a), "·", tn(b)), op, tPow(tn(c), -1)),
         ans,
         [
           { value: apply(m, op, c), msg: "El exponente −1 da vuelta la base (es el inverso)." },
@@ -176,7 +181,7 @@ export const combMixta = gen("w7-mixta", (r) => {
     const ans = apply(rv, op, c);
     if (!ok(ans)) return null;
     const q = finish(
-      row(root(2, row(fr(a), "·", fr(b))), op, fr(c)),
+      tSum(tRoot(2, tProd(tn(a), "·", tn(b))), op, tn(c)),
       ans,
       [{ value: apply(s, op, c), msg: "Te faltó sacar la raíz después de multiplicar." }],
       "Primero resolvé lo de adentro de la raíz.",
@@ -206,7 +211,7 @@ export const combCorchetes = gen("w7-corchetes", (r) => {
       const ans = t.pow(2);
       if (!ok(t) || !ok(ans)) return null;
       return {
-        ...finish(pow(par(row(par(row(fr(a), op1, fr(b))), op2, fr(c)), "["), 2), ans, [{ value: t, msg: "Te faltó elevar al cuadrado el corchete." }], "De adentro hacia afuera: paréntesis, corchete y al final la potencia."),
+        ...finish(tPow(tPar(tProd(tPar(tSum(tn(a), op1, tn(b))), op2, tn(c)), "["), 2), ans, [{ value: t, msg: "Te faltó elevar al cuadrado el corchete." }], "De adentro hacia afuera: paréntesis, corchete y al final la potencia."),
         steps: [
           { text: "Primero el paréntesis:", math: opRow(a, op1, b) },
           { text: `Después ${opWord[op2]} dentro del corchete:`, math: opRow(s, op2, c) },
@@ -219,7 +224,7 @@ export const combCorchetes = gen("w7-corchetes", (r) => {
       const ans = sq.mul(c);
       if (!ok(sq) || !ok(ans)) return null;
       return {
-        ...finish(row(pow(par(row(fr(a), op1, fr(b))), 2), "·", fr(c)), ans, [
+        ...finish(tProd(tPow(tPar(tSum(tn(a), op1, tn(b))), 2), "·", tn(c)), ans, [
           { value: apply(a.pow(2), op1, b.pow(2)).mul(c), msg: "La potencia NO se distribuye en la suma ni en la resta: primero se resuelve el paréntesis y después se eleva." },
           { value: s.mul(c), msg: "Te faltó elevar al cuadrado el paréntesis." },
         ], "Resolvé el paréntesis, elevá, y después multiplicá."),
@@ -238,7 +243,7 @@ export const combCorchetes = gen("w7-corchetes", (r) => {
     const ans = a.sub(inner);
     if (!ok(inner) || !ok(ans)) return null;
     return {
-      ...finish(row(fr(a), "-", par(row(fr(b), "-", pow(fr(p), 2)), "[")), ans, [{ value: a.sub(b).sub(p2), msg: "El − delante del corchete cambia el signo de TODO lo de adentro: −[b − c] = −b + c." }], "Resolvé primero lo de adentro del corchete."),
+      ...finish(tSum(tn(a), "-", tPar(tSum(tn(b), "-", tPow(tn(p), 2)), "[")), ans, [{ value: a.sub(b).sub(p2), msg: "El − delante del corchete cambia el signo de TODO lo de adentro: −[b − c] = −b + c." }], "Resolvé primero lo de adentro del corchete."),
       steps: [
         { text: "Dentro del corchete, primero la potencia:", math: row(pow(fr(p), 2), "=", fr(p2)) },
         { text: "Después la resta de adentro:", math: opRow(b, "-", p2) },

@@ -6,7 +6,7 @@ import { cleanTraps, ft, gen, nice, properFrac, retry } from "../helpers";
 import type { Choice, Question, Step, Trap } from "../types";
 import { sumSteps } from "./w3";
 import { mulSteps } from "./w4";
-import { tn, tx, type BoardSpec } from "../board";
+import { eqPz, tPow, tTerms, tX, tn, type PzSpec } from "../pizarra";
 
 function opRow(a: Fraction, op: "+" | "-" | "·" | ":", b: Fraction): Expr {
   const res = op === "+" ? a.add(b) : op === "-" ? a.sub(b) : op === "·" ? a.mul(b) : a.div(b);
@@ -213,7 +213,7 @@ export const problemaDelResto = gen("w9-del-resto", (r) => {
 // ---------- Plantear y resolver ecuaciones ----------
 
 interface EqTemplate {
-  board: BoardSpec;
+  pizarra: PzSpec;
   hint?: string;
   rule?: string;
   story: string;
@@ -252,7 +252,7 @@ function eqProblem(r: Rng, t: EqTemplate): Question {
     math: t.correct,
     answer: { kind: "fraction", value: t.x },
     answerPrefix: "x =",
-    board: t.board,
+    pizarra: t.pizarra,
     hint: [{ text: t.hint ?? "Juntá los términos con x, pasá los números al otro lado y despejá." }],
     steps: [...t.solve, { text: t.meaning }],
     rule: t.rule ?? "Para despejar x: lo que suma pasa restando, lo que resta pasa sumando, lo que multiplica pasa dividiendo.",
@@ -284,7 +284,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
         story: `En la pizzería pensaron un número. Si a ese número le suman ${a.n === 1 ? `su ${PARTS[a.d].replace("la ", "")}` : `sus ${ft(a)} partes`}, da ${ft(Nn)}.`,
         question: "¿Cuál es el número?",
         correct: row(X, "+", coef(a), "=", fr(Nn)),
-        board: { L: { terms: [tx(F(1)), tx(a)] }, R: { terms: [tn(Nn)] } },
+        pizarra: eqPz(tTerms({ x: F(1) }, { x: a }), tn(Nn)),
         wrong: [
           { math: row(X, "+", fr(a), "=", fr(Nn)), why: `Así le sumás ${ft(a)} y nada más. Lo que se suma es una parte DEL número: ${ft(a)}·x.` },
           { math: row(coef(a), "=", fr(Nn)), why: "Falta sumar el número x." },
@@ -305,7 +305,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
         story: `Gastaron ${ft(a)} de la plata de la caja en harina y les quedaron $${Nn.n}.`,
         question: "¿Cuánta plata había en la caja?",
         correct: row(X, "-", coef(a), "=", fr(Nn)),
-        board: { L: { terms: [tx(F(1)), tx(a.neg())] }, R: { terms: [tn(Nn)] } },
+        pizarra: eqPz(tTerms({ x: F(1) }, { x: a.neg() }), tn(Nn)),
         wrong: [
           { math: row(coef(a), "=", fr(Nn)), why: `Los $${Nn.n} son lo que QUEDÓ, no lo que se gastó.` },
           { math: row(X, "-", fr(a), "=", fr(Nn)), why: `Se gastaron ${ft(a)} DE la plata, o sea ${ft(a)}·x, no ${ft(a)} pesos.` },
@@ -330,7 +330,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
         story: `En un pedido, la mitad de las pizzas eran de muzza, ${PARTS[k]} de jamón y las ${Nn.n} restantes de fugazzeta.`,
         question: "¿Cuántas pizzas tenía el pedido?",
         correct: row(coef(frac2), "+", coef(fk), "+", fr(Nn), "=", X),
-        board: { L: { terms: [tx(frac2), tx(fk), tn(Nn)] }, R: { terms: [tx(F(1))] } },
+        pizarra: eqPz(tTerms({ x: frac2 }, { x: fk }, Nn), tX),
         wrong: [
           { math: row(fr(frac2), "+", fr(fk), "+", fr(Nn), "=", X), why: `Es la mitad DE las pizzas y ${PARTS[k]} DE las pizzas: hay que multiplicar por x.` },
           { math: row(coef(frac2), "+", coef(fk), "=", fr(Nn)), why: `Las ${Nn.n} de fugazzeta son las que SOBRAN, no la suma de las otras.` },
@@ -360,7 +360,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
           story: `Si a ${word} de un número le restás ${ft(a)}, obtenés ${ft(c)}.`,
           question: "¿Cuál es el número?",
           correct: row(coef(K), "-", fr(a), "=", fr(c)),
-          board: { L: { terms: [tx(K), tn(a.neg())] }, R: { terms: [tn(c)] } },
+          pizarra: eqPz(tTerms({ x: K }, a.neg()), tn(c)),
           wrong: [
             { math: row(fr(K), "·", par(row(X, "-", fr(a))), "=", fr(c)), why: `Así le restás ${ft(a)} ANTES de multiplicar. El enunciado dice: primero ${word}, después restás.` },
             { math: row(pow(X, k), "-", fr(a), "=", fr(c)), why: `${word[0].toUpperCase() + word.slice(1)} es ${k}·x, no x elevado a la ${k}.` },
@@ -378,7 +378,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
         story: `${PARTS[k][0].toUpperCase() + PARTS[k].slice(1)} de un número, aumentada en ${ft(a)}, es igual a ${ft(c)}.`,
         question: "¿Cuál es el número?",
         correct: row(coef(K), "+", fr(a), "=", fr(c)),
-        board: { L: { terms: [tx(K), tn(a)] }, R: { terms: [tn(c)] } },
+        pizarra: eqPz(tTerms({ x: K }, a), tn(c)),
         wrong: [
           { math: row(coef(F(k)), "+", fr(a), "=", fr(c)), why: `${PARTS[k][0].toUpperCase() + PARTS[k].slice(1)} es x : ${k}, o sea ${ft(K)}·x, no ${k}·x.` },
           { math: row(fr(K), "·", par(row(X, "+", fr(a))), "=", fr(c)), why: "Primero se toma la parte del número y DESPUÉS se suma. Con el paréntesis se suma primero." },
@@ -398,7 +398,7 @@ export const problemaEcuacion = gen("w9-ecuacion", (r) => {
       story: `El cuadrado de un número positivo es ${ft(s)}.`,
       question: "¿Cuál es el número?",
       correct: row(pow(X, 2), "=", fr(s)),
-      board: { L: { terms: [{ c: F(1), pow: 2 }] }, R: { terms: [tn(s)] } },
+      pizarra: eqPz(tPow(tX, 2), tn(s)),
       wrong: [
         { math: row(coef(F(2)), "=", fr(s)), why: "El cuadrado de x es x·x, no 2·x." },
         { math: row(root(2, X), "=", fr(s)), why: "Eso dice que la RAÍZ del número es esa fracción. El enunciado habla del CUADRADO." },
@@ -424,7 +424,7 @@ export const problemaEdades = gen("w9-partes", (r) => {
       story: `${a.n === 1 ? PARTS[a.d][0].toUpperCase() + PARTS[a.d].slice(1) : `Los ${ft(a)}`} de las porciones que hizo ${A} son ${Nn.n} porciones.`,
       question: `¿Cuántas porciones hizo ${A}?`,
       correct: row(coef(a), "=", fr(Nn)),
-      board: { L: { terms: [tx(a)] }, R: { terms: [tn(Nn)] } },
+      pizarra: eqPz(tTerms({ x: a }), tn(Nn)),
       wrong: [
         { math: row(X, "+", fr(a), "=", fr(Nn)), why: `“Los ${ft(a)} de las porciones” es ${ft(a)}·x, una multiplicación, no una suma.` },
         { math: row(coef(a.inv()), "=", fr(Nn)), why: "Diste vuelta la fracción." },
