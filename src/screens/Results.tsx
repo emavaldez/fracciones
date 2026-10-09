@@ -4,11 +4,13 @@ import { Confetti } from "../components/Confetti";
 import { findLevel, nextLevel } from "../game/worlds";
 import type { LevelResult } from "./Play";
 import { sfx } from "../sound";
+import { useLook } from "../look";
 
 export function Results({ result, onAgain, onNext, onMap }: { result: LevelResult; onAgain: () => void; onNext: (id: string) => void; onMap: () => void }) {
   const { level, world } = findLevel(result.levelId)!;
   const nxt = nextLevel(result.levelId);
   const boss = level.boss;
+  const choco = useLook() === "choco";
 
   useEffect(() => {
     if (result.lost) sfx.lose();
@@ -28,8 +30,8 @@ export function Results({ result, onAgain, onNext, onMap }: { result: LevelResul
     : result.pizzas === 3
       ? "La cocina funciona como un reloj."
       : result.pizzas === 2
-        ? "Muy bien. Con un par de errores menos llegás a las tres pizzas."
-        : "Lo terminaste. Probá de nuevo para sumar pizzas: los ejercicios cambian cada vez.";
+        ? `Muy bien. Con un par de errores menos llegás a ${choco ? "los tres chocolates" : "las tres pizzas"}.`
+        : `Lo terminaste. Probá de nuevo para sumar ${choco ? "chocolates" : "pizzas"}: los ejercicios cambian cada vez.`;
 
   return (
     <div className="screen results">

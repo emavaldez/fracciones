@@ -3,8 +3,8 @@ import type { GenEntry, Level, Question } from "./types";
 
 export function signature(q: Question): string {
   const a = q.answer;
-  const val = a.kind === "choice" ? `c${a.correct}:${a.options.length}` : String(a.value);
-  return JSON.stringify([q.title, q.story ?? "", q.math ?? null, q.pizzas ?? null, val]);
+  const val = a.kind === "choice" ? `c${a.correct}:${a.options.length}` : a.kind === "sci" ? `${a.m}e${a.e}` : String(a.value);
+  return JSON.stringify([q.title, q.story ?? "", q.math ?? null, q.pizzas ?? null, q.line ?? null, val]);
 }
 
 /** Arma la lista de comandas de un nivel, alternando generadores y sin repetir ejercicios. */

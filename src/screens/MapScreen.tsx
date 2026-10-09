@@ -4,6 +4,8 @@ import { RECIPES } from "../game/recipes";
 import type { World } from "../game/types";
 import { MathView, RichText } from "../components/MathView";
 import { PizzaRating } from "../components/PizzaRating";
+import { NumberLine } from "../components/NumberLine";
+import { LookToggle, prizeWord, type Look } from "../look";
 
 export const RANKS: [number, string][] = [
   [0, "Aprendiz de la masa"],
@@ -55,6 +57,11 @@ function RecipeView({ world }: { world: World }) {
                 <MathView e={it.math} size="sm" />
               </div>
             )}
+            {it.line && (
+              <div className="recipe-line">
+                <NumberLine spec={it.line} />
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -69,7 +76,11 @@ export function MapScreen({
   setSound,
   onPlay,
   onHome,
+  look,
+  setLook,
 }: {
+  look: Look;
+  setLook: (l: Look) => void;
   coins: number;
   best: Record<string, number>;
   sound: boolean;
@@ -109,6 +120,9 @@ export function MapScreen({
       </header>
 
       <p className="map-intro">Elegí un sector de la cocina. Todos los niveles están abiertos.</p>
+      <div className="map-look">
+        <LookToggle look={look} setLook={setLook} />
+      </div>
 
       <ol className="route">
         {WORLDS.map((w, i) => {
@@ -124,7 +138,7 @@ export function MapScreen({
                   <span className="stop-num">Sector {i + 1}</span>
                   <span className="stop-name">{w.place}</span>
                   <span className="stop-topic">{w.topic}</span>
-                  {got > 0 && <span className="stop-score">{got} de {max} pizzas</span>}
+                  {got > 0 && <span className="stop-score">{got} de {max} {prizeWord(look)}</span>}
                 </span>
               </button>
             </li>

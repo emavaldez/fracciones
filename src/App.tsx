@@ -5,13 +5,14 @@ import { Play, type LevelResult } from "./screens/Play";
 import { Results } from "./screens/Results";
 import { setSoundEnabled } from "./sound";
 import { findLevel } from "./game/worlds";
+import { LookContext, loadLook, saveLook, type Look } from "./look";
 
 // Galería de ejercicios: solo en desarrollo (npm run dev → #galeria).
 const Gallery = import.meta.env.DEV ? lazy(() => import("./screens/Gallery")) : null;
 
 /** Permite abrir un nivel directo con un link: …/#nivel=3-2 */
 function initialScreen(): Screen {
-  const m = location.hash.match(/nivel=(\d-[\dJj])/);
+  const m = location.hash.match(/nivel=(\d{1,2}-[\dJj])/);
   if (m) {
     const id = m[1].toUpperCase();
     if (findLevel(id)) return { name: "play", levelId: id, run: 0 };
@@ -28,6 +29,11 @@ export default function App() {
   const [best, setBest] = useState<Record<string, number>>({});
   const [sound, setSoundState] = useState(true);
   const [run, setRun] = useState(0);
+  const [look, setLookState] = useState<Look>(loadLook);
+  const setLook = useCallback((l: Look) => {
+    saveLook(l);
+    setLookState(l);
+  }, []);
 
   const setSound = useCallback((v: boolean) => {
     setSoundEnabled(v);
@@ -52,37 +58,36 @@ export default function App() {
 
   if (Gallery && location.hash === "#galeria") {
     return (
-      <Suspense fallback={null}>
-        <Gallery />
-      </Suspense>
+      <LookContext.Provider value={look}>
+        <Suspense fallback={null}>
+          <Gallery />
+        </Suspense>
+      </LookContext.Provider>
     );
   }
 
-  switch (screen.name) {
-    case "home":
-      return <Home onStart={() => setScreen({ name: "map" })} />;
-    case "map":
-      return <MapScreen coins={coins} best={best} sound={sound} setSound={setSound} onPlay={play} onHome={() => setScreen({ name: "home" })} />;
-    case "play":
-      return (
-        <Play
-          key={screen.run}
-          levelId={screen.levelId}
-          onExit={() => {
-            if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-            setScreen({ name: "map" });
-          }}
-          onFinish={finish}
-        />
-      );
-    case "results":
-      return (
-        <Results
-          result={screen.result}
-          onAgain={() => play(screen.result.levelId)}
-          onNext={(id) => play(id)}
-          onMap={() => setScreen({ name: "map" })}
-        />
-      );
+  return <LookContext.Provider value={look}>{content()}</LookContext.Provider>;
+
+  function content() {
+    switch (screen.name) {
+      case "home":
+        return <Home onStart={() => setScreen({ name: "map" })} look={look} setLook={setLook} />;
+      case "map":
+        return <MapScreen coins={coins} best={best} sound={sound} setSound={setSound} onPlay={play} onHome={() => setScreen({ name: "home" })} look={look} setLook={setLook} />;
+      case "play":
+        return (
+          <Play
+            key={screen.run}
+            levelId={screen.levelId}
+            onExit={() => {
+              if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+              setScreen({ name: "map" });
+            }}
+            onFinish={finish}
+          />
+        );
+      case "results":
+        return <Results result={screen.result} onAgain={() => play(screen.result.levelId)} onNext={(id) => play(id)} onMap={() => setScreen({ name: "map" })} />;
+    }
   }
 }

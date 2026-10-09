@@ -166,10 +166,19 @@ export function MathView({ e, size = "md", className = "" }: { e: Expr; size?: "
 
 /** Texto con fracciones en línea: "Sumamos {3/4} y {1/2}". */
 export function RichText({ text }: { text: string }) {
-  const parts = text.split(/(\{-?\d+\/\d+\})/g);
+  // También dibuja potencias escritas "10^-3" (para la notación científica).
+  const parts = text.split(/(\{-?\d+\/\d+\}|\d+\^-?\d+)/g);
   return (
     <>
       {parts.map((p, i) => {
+        const pw = p.match(/^(\d+)\^(-?\d+)$/);
+        if (pw) {
+          return (
+            <span key={i} className="m m-inline" role="math" aria-label={`${pw[1]} a la ${pw[2]}`}>
+              <Node e={{ t: "pow", b: { t: "num", n: Number(pw[1]), d: 1 }, e: { t: "num", n: Number(pw[2]), d: 1 } }} />
+            </span>
+          );
+        }
         const m = p.match(/^\{(-?\d+)\/(\d+)\}$/);
         if (!m) return <span key={i}>{p.replace(/(^|[\s(=,])-(?=\d)/g, "$1−")}</span>;
         const n = Number(m[1]);

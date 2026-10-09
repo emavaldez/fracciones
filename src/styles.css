@@ -25,6 +25,10 @@
   --bad: #c7392a;
   --bad-soft: #fde9e5;
   --plate: #f4f1ea;
+  --choco: #6e3f22;
+  --choco-top: #8a5530;
+  --choco-deep: #3f2213;
+  --choco-shine: rgba(255, 228, 196, 0.45);
   --key: #fffcf3;
   --key-shadow: #b9ad8c;
   --on-wall: #f3ead2;
@@ -2539,5 +2543,362 @@ button {
   }
   .pz-eqsign {
     font-size: 1.5rem;
+  }
+}
+
+/* ---------------- Recta numérica ---------------- */
+.nl {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  overflow: visible;
+  font-family: var(--font-math);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nl.is-interactive {
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.nl-hit {
+  fill: transparent;
+}
+.nl-axis {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.nl-arrow {
+  fill: var(--ink);
+}
+.nl-tick {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.nl-tick.is-whole {
+  stroke-width: 2.6;
+}
+.nl-tick.is-on {
+  stroke: var(--tomato);
+  stroke-width: 3;
+}
+.nl-num {
+  font-size: 16px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.nl-num-sm {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ink);
+}
+.nl-bar {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.nl-hop {
+  fill: none;
+  stroke: var(--basil);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.nl-hop-n {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--basil);
+}
+.nl-ref {
+  fill: var(--ink);
+}
+.nl-pin {
+  transition: transform 0.12s ease-out;
+}
+.nl-pin.is-dragging {
+  transition: none;
+}
+.nl-head {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.nl-pin-ask .nl-head,
+.nl-pin-pick .nl-head {
+  fill: var(--tomato);
+}
+.nl-pin-pick.is-dragging .nl-head {
+  fill: var(--tomato-deep);
+}
+.nl-pin-ok .nl-head {
+  fill: var(--ok);
+}
+.nl-pin-bad .nl-head {
+  fill: var(--bad);
+}
+.nl-pin-letter .nl-head {
+  fill: var(--cheese);
+  stroke: var(--cheese-deep);
+}
+.nl-tag {
+  font-size: 12.5px;
+  font-weight: 800;
+  fill: #fff;
+}
+.nl-pin-letter .nl-tag {
+  fill: var(--ink);
+}
+.nl-dot {
+  fill: #fff;
+}
+.nl-stick {
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+}
+.ticket-line,
+.line-answer {
+  margin-top: 4px;
+}
+.nl-help {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.nl-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  margin: 2px 0 4px;
+  font-weight: 600;
+}
+.nl-parts-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nl-step {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--cheese);
+  box-shadow: 0 3px 0 var(--cheese-deep);
+  color: var(--ink);
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+.nl-step:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--cheese-deep);
+}
+.nl-step:disabled {
+  opacity: 0.45;
+}
+.nl-parts-n {
+  min-width: 36px;
+  text-align: center;
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.line-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 8px;
+}
+.line-controls .key-go {
+  grid-column: auto;
+}
+.ticket-math.is-tight {
+  padding: 0 0 2px;
+}
+.choices.is-letters {
+  grid-template-columns: repeat(4, 1fr);
+}
+.choices.is-letters .choice {
+  min-height: 52px;
+}
+.fb-line {
+  margin: 4px 0 12px;
+}
+.fb-line-key {
+  margin: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.fb-key-ok {
+  color: var(--ok);
+  font-weight: 700;
+}
+.fb-key-bad {
+  color: var(--bad);
+  font-weight: 700;
+}
+.steps-line,
+.recipe-line {
+  margin: 4px 0 2px;
+  max-width: 440px;
+}
+
+/* ---------------- Notación científica ---------------- */
+.ans-sci {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 26px;
+}
+.ans-times {
+  font-size: 1.8rem;
+}
+.ans-ten {
+  font-size: 1.9rem;
+  margin-left: 2px;
+}
+.slot.slot-exp {
+  min-width: 46px;
+  height: 40px;
+  padding: 0 8px;
+  font-size: 1.25rem;
+  align-self: flex-start;
+  margin-top: -24px;
+  margin-left: -4px;
+}
+.slot.slot-exp .caret {
+  height: 22px;
+}
+.key-sci-label {
+  font-family: var(--font-math);
+  font-size: 1.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.key-sci-label sup {
+  font-size: 0.7em;
+}
+.key-sci-label b {
+  color: var(--tomato-deep);
+}
+
+@media (max-height: 700px), (max-width: 360px) {
+  .nl-step {
+    width: 40px;
+    height: 40px;
+  }
+  .slot.slot-exp {
+    height: 34px;
+    min-width: 40px;
+    margin-top: -20px;
+  }
+  .ans-sci {
+    padding-top: 20px;
+  }
+  .nl-parts {
+    font-size: 0.92rem;
+    gap: 2px 8px;
+  }
+  .nl-step {
+    width: 38px;
+    height: 38px;
+  }
+  .nl-parts-n {
+    min-width: 28px;
+    font-size: 1.4rem;
+  }
+  .ans-times,
+  .ans-ten {
+    font-size: 1.5rem;
+  }
+}
+
+/* ---------------- Chocolates ---------------- */
+.ch-wrap {
+  fill: var(--plate);
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-width: 1;
+}
+.home-pizza .ch-wrap {
+  fill: #e9e1cd;
+}
+.ch-wrap-dark {
+  fill: var(--choco-deep);
+}
+.ch-side {
+  fill: var(--choco);
+  stroke: var(--choco-deep);
+  stroke-width: 0.8;
+}
+.ch-top {
+  fill: var(--choco-top);
+}
+.ch-shine {
+  fill: none;
+  stroke: var(--choco-shine);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.ch-empty {
+  fill: none;
+  stroke: #b8ae96;
+  stroke-width: 1;
+  stroke-dasharray: 2.5 2.5;
+}
+.prize.ch .ch-side {
+  stroke-width: 0.5;
+}
+
+/* Elegir pizzas o chocolates */
+.look-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  margin: 4px 0 16px;
+}
+.look-label {
+  font-size: 0.85rem;
+  color: var(--on-wall-soft);
+  padding: 0 4px 0 10px;
+}
+.look-opt {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-height: 40px;
+  background: transparent;
+  color: var(--on-wall);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.look-opt.is-on {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.map-look {
+  display: flex;
+  justify-content: center;
+  margin-top: -4px;
+}
+.map-look .look-toggle {
+  margin: 0 0 10px;
+}
+@media (max-width: 360px) {
+  .look-label {
+    display: none;
+  }
+  .look-opt {
+    padding: 8px 11px;
   }
 }

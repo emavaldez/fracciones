@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MathView, RichText } from "../components/MathView";
-import { Pizzas, OnePizza } from "../components/Pizza";
+import { Pizzas, OnePizza, LifeIcon } from "../components/Pizza";
+import { useLook, withLook } from "../look";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
+import { NumberLine } from "../components/NumberLine";
 import { PizarraPath, PizarraStage, type PzSummary } from "../components/Pizarra";
 import { Steps } from "../components/Steps";
-import { check, emptyDraft, validate, type Draft, type Verdict } from "../game/check";
+import { check, draftFor, validate, type Draft, type Verdict } from "../game/check";
 import { buildQueue, signature, similar } from "../game/session";
 import { findLevel } from "../game/worlds";
 import type { Question } from "../game/types";
 import { makeRng } from "../math/rng";
 import { dec, fr, mixedOf, N, toText } from "../math/expr";
-import { fractionToDecimalString } from "../math/fraction";
+import { F, type Fraction } from "../math/fraction";
+import { decStr, sciExpr } from "../math/sci";
 import { sfx } from "../sound";
 
 export interface LevelResult {
@@ -57,7 +60,15 @@ function CorrectAnswer({ q }: { q: Question }) {
     );
   }
   const e =
-    a.kind === "integer" ? N(a.value) : a.kind === "mixed" ? mixedOf(a.value) : a.kind === "decimal" ? dec(fractionToDecimalString(a.value) ?? "") : fr(a.value);
+    a.kind === "integer"
+      ? N(a.value)
+      : a.kind === "mixed"
+        ? mixedOf(a.value)
+        : a.kind === "decimal"
+          ? dec(decStr(a.value))
+          : a.kind === "sci"
+            ? sciExpr(a.m, a.e)
+            : fr(a.value);
   return (
     <span className="fb-answer-val">
       {q.answerPrefix && <span className="fb-answer-prefix">{q.answerPrefix}</span>}
@@ -71,11 +82,12 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const { level, world } = found;
   const rng = useMemo(() => makeRng(), []);
   const isBoss = !!level.boss;
+  const look = useLook();
 
   const [started, setStarted] = useState(!isBoss);
-  const [queue, setQueue] = useState<Question[]>(() => buildQueue(level, rng));
+  const [queue, setQueue] = useState<Question[]>(() => buildQueue(level, rng).map((x) => withLook(x, look)));
   const [idx, setIdx] = useState(0);
-  const [draft, setDraft] = useState<Draft>(emptyDraft());
+  const [draft, setDraft] = useState<Draft>(() => draftFor(queue[0].answer));
   const [slot, setSlot] = useState<Slot>("num");
   const [choice, setChoice] = useState<number | null>(null);
   const [phase, setPhase] = useState<"answer" | "feedback">("answer");
@@ -108,7 +120,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const badWord = useMemo(() => BAD[idx % BAD.length], [idx]);
 
   const resetInput = useCallback((next: Question) => {
-    setDraft(emptyDraft());
+    setDraft(draftFor(next.answer));
     setChoice(null);
     setSlot(slotsFor(next.answer.kind)[0]);
     setWarn(null);
@@ -165,7 +177,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         const avoid = new Set(newQueue.map(signature));
         const sim = similar(level, q.gen, rng, avoid);
         if (sim) {
-          newQueue = [...newQueue, sim];
+          newQueue = [...newQueue, withLook(sim, look)];
           setExtra((x) => x + 1);
           setRequeued(true);
         }
@@ -173,7 +185,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     }
     setStreak(s.streak);
     if (newQueue !== queue) setQueue(newQueue);
-  }, [phase, q, draft, choice, queue, idx, isBoss, hint, extra, level, rng]);
+  }, [phase, q, draft, choice, queue, idx, isBoss, hint, extra, level, rng, look]);
 
   const finishBoard = useCallback(
     (sum: PzSummary) => {
@@ -232,9 +244,46 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     ticketRef.current?.scrollTo({ top: 0 });
   }, [phase, isBoss, lives, idx, queue, finish, resetInput]);
 
+  // Recta: poner la banderita, moverla de a una rayita y cambiar las divisiones.
+  const pick = useCallback(
+    (v: Fraction) => {
+      if (phase !== "answer" || (draft.pt && draft.pt.equals(v))) return;
+      sfx.tap();
+      setDraft({ ...draft, pt: v });
+      setWarn(null);
+    },
+    [phase, draft],
+  );
+  const nudge = useCallback(
+    (dir: 1 | -1) => {
+      if (phase !== "answer" || !q || q.answer.kind !== "point") return;
+      const { min, max } = q.answer.line;
+      const p = draft.parts;
+      const start = min <= 0 && max >= 0 ? F(0) : F(min);
+      let v = draft.pt ? draft.pt.add(F(dir, p)) : start;
+      if (v.compare(F(min)) < 0) v = F(min);
+      if (v.compare(F(max)) > 0) v = F(max);
+      pick(v);
+    },
+    [phase, q, draft, pick],
+  );
+  const setParts = useCallback(
+    (p: number) => {
+      if (phase !== "answer" || !q || q.answer.kind !== "point") return;
+      const parts = Math.max(1, Math.min(12, p));
+      if (parts === draft.parts) return;
+      sfx.tap();
+      // La banderita se queda en la rayita nueva más cercana.
+      const pt = draft.pt ? F(Math.round(draft.pt.value() * parts), parts) : null;
+      setDraft({ ...draft, parts, pt });
+      setWarn(null);
+    },
+    [phase, q, draft],
+  );
+
   const onKey = useCallback(
     (k: string) => {
-      if (phase !== "answer" || !q || q.answer.kind === "choice") return;
+      if (phase !== "answer" || !q || q.answer.kind === "choice" || q.answer.kind === "point") return;
       const res = applyKey(q.answer.kind, draft, slot, k);
       setDraft(res.draft);
       setSlot(res.slot);
@@ -260,6 +309,19 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         return;
       }
       if (phase !== "answer" || !q) return;
+      if (q.answer.kind === "point") {
+        const act: Record<string, () => void> = {
+          ArrowLeft: () => nudge(-1),
+          ArrowRight: () => nudge(1),
+          "+": () => setParts(draft.parts + 1),
+          "-": () => setParts(draft.parts - 1),
+        };
+        if (act[ev.key] && (q.answer.pickParts || ev.key.startsWith("Arrow"))) {
+          ev.preventDefault();
+          act[ev.key]();
+        }
+        return;
+      }
       if (q.answer.kind === "choice") {
         const n = Number(ev.key);
         if (n >= 1 && n <= q.answer.options.length) {
@@ -268,7 +330,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         }
         return;
       }
-      const map: Record<string, string> = { Backspace: "⌫", "-": "±", "/": "next", Tab: "next", ArrowDown: "next", ArrowRight: "next", ArrowUp: "prev", ArrowLeft: "prev", ",": ",", ".": "," };
+      const map: Record<string, string> = { Backspace: "⌫", "-": "±", "/": "next", "^": "next", Tab: "next", ArrowDown: "next", ArrowRight: "next", ArrowUp: "prev", ArrowLeft: "prev", ",": ",", ".": "," };
       const key = /^\d$/.test(ev.key) ? ev.key : map[ev.key];
       if (key) {
         ev.preventDefault();
@@ -277,7 +339,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [started, phase, q, submit, next, onKey, boardMode]);
+  }, [started, phase, q, submit, next, onKey, boardMode, nudge, setParts, draft.parts]);
 
   useEffect(() => {
     if (phase === "feedback") feedbackRef.current?.focus();
@@ -360,11 +422,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
           <div className="lives" aria-label={`${lives} vidas`}>
             {Array.from({ length: level.boss!.lives }, (_, i) => (
               <span key={i} className={`life${i < lives ? "" : " is-lost"}`} aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22">
-                  <path d="M12 2 L22 20 Q12 24 2 20 Z" className="life-crust" />
-                  <path d="M12 6 L19 19 Q12 22 5 19 Z" className="life-cheese" />
-                  <circle cx="12" cy="15" r="2.2" className="life-pep" />
-                </svg>
+                <LifeIcon />
               </span>
             ))}
           </div>
@@ -402,8 +460,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
             <article className="ticket" key={idx}>
               {ticketHead}
               {q.math && (
-                <div className="ticket-math">
-                  <MathView e={q.math} size="lg" />
+                <div className={`ticket-math${q.answer.kind === "point" || q.line ? " is-tight" : ""}`}>
+                  <MathView e={q.math} size={q.answer.kind === "point" || q.line ? "md" : "lg"} />
                 </div>
               )}
               {q.pizzas && (
@@ -411,6 +469,11 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                   {q.pizzas.map((p, i) => (
                     <Pizzas key={i} spec={p} size={q.pizzas!.length > 1 ? 96 : 120} />
                   ))}
+                </div>
+              )}
+              {q.line && (
+                <div className="ticket-line">
+                  <NumberLine spec={q.line} />
                 </div>
               )}
               {hint && phase === "answer" && (
@@ -426,11 +489,33 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                 </div>
               )}
 
-              {kind === "choice" ? (
+              {q.answer.kind === "point" ? (
+                <div className="line-answer">
+                  {q.answer.pickParts && (
+                    <div className="nl-parts" role="group" aria-label="Divisiones de cada entero">
+                      <span>Dividí cada entero en</span>
+                      <span className="nl-parts-ctl">
+                        <button type="button" className="nl-step" onClick={() => setParts(draft.parts - 1)} disabled={phase !== "answer" || draft.parts <= 1} aria-label="Menos partes">
+                          −
+                        </button>
+                        <span className="nl-parts-n" aria-live="polite">
+                          {draft.parts}
+                        </span>
+                        <button type="button" className="nl-step" onClick={() => setParts(draft.parts + 1)} disabled={phase !== "answer" || draft.parts >= 12} aria-label="Más partes">
+                          +
+                        </button>
+                      </span>
+                      <span>{draft.parts === 1 ? "parte" : "partes"}</span>
+                    </div>
+                  )}
+                  <NumberLine spec={q.answer.line} parts={draft.parts} pin={draft.pt} onPick={phase === "answer" ? pick : undefined} />
+                  {!draft.pt && phase === "answer" && <p className="nl-help">Tocá la recta o arrastrá la banderita. Las flechas la mueven de a una rayita.</p>}
+                </div>
+              ) : kind === "choice" ? (
                 <div
                   className={`choices${q.answer.kind === "choice" && q.answer.options.some((o) => o.pizza) ? " has-pizzas" : ""}${
                     q.answer.kind === "choice" && q.answer.options.some((o) => (o.math ? toText(o.math).length > 14 : (o.label ?? "").length > 22)) ? " is-wide" : ""
-                  }`}
+                  }${q.answer.kind === "choice" && q.answer.options.every((o) => !o.math && !o.pizza && (o.label ?? "").length === 1) ? " is-letters" : ""}`}
                   role="radiogroup"
                   aria-label="Opciones"
                 >
@@ -484,7 +569,23 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
           </main>
 
           <footer className="play-bottom">
-            {kind === "choice" ? (
+            {kind === "point" ? (
+              <div className="line-controls">
+                <button type="button" className="key key-fn" onClick={() => nudge(-1)} disabled={phase !== "answer"} aria-label="Mover la banderita a la izquierda">
+                  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" className="ico-line" />
+                  </svg>
+                </button>
+                <button type="button" className="key key-fn" onClick={() => nudge(1)} disabled={phase !== "answer"} aria-label="Mover la banderita a la derecha">
+                  <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" className="ico-line" />
+                  </svg>
+                </button>
+                <button type="button" className="key key-go" onClick={submit} disabled={phase !== "answer"}>
+                  Servir
+                </button>
+              </div>
+            ) : kind === "choice" ? (
               <button type="button" className="btn btn-primary btn-big btn-block" onClick={submit} disabled={phase !== "answer"}>
                 Servir
               </button>
@@ -545,13 +646,26 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                     <span className="fb-answer-key">La respuesta era</span>
                     <CorrectAnswer q={q} />
                   </div>
+                  {q.answer.kind === "point" && (
+                    <div className="fb-line">
+                      <NumberLine
+                        spec={q.answer.line}
+                        parts={draft.parts}
+                        extra={[{ value: q.answer.value, tone: "ok" }, ...(draft.pt ? [{ value: draft.pt, tone: "bad" as const }] : [])]}
+                        label="La banderita verde es la respuesta; la roja, la tuya"
+                      />
+                      <p className="fb-line-key">
+                        <span className="fb-key-ok">verde</span>: dónde iba · <span className="fb-key-bad">roja</span>: dónde la pusiste
+                      </p>
+                    </div>
+                  )}
                   <div className="fb-diagnosis">
                     <h3>Qué pasó</h3>
                     <p>
                       {verdict.diagnosis ? (
                         <RichText text={verdict.diagnosis} />
                       ) : (
-                        <>Esta vez no salió{verdict.given ? ` (pusiste ${verdict.given})` : ""}. Seguí la receta paso a paso:</>
+                        <RichText text={`Esta vez no salió${verdict.given ? ` (pusiste ${verdict.given})` : ""}. Seguí la receta paso a paso:`} />
                       )}
                     </p>
                   </div>

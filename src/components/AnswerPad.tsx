@@ -1,19 +1,29 @@
 import type { Draft } from "../game/check";
 import type { AnswerSpec } from "../game/types";
+import { groupThousands } from "../math/sci";
 
-export type Slot = "whole" | "num" | "den" | "text";
+export type Slot = "whole" | "num" | "den" | "text" | "exp";
 
 export function slotsFor(kind: AnswerSpec["kind"]): Slot[] {
   if (kind === "fraction") return ["num", "den"];
   if (kind === "mixed") return ["whole", "num", "den"];
+  if (kind === "sci") return ["text", "exp"];
   return ["text"];
 }
 
-const MAX = 5;
+/** Cuántas cifras entran en cada casillero. */
+function maxDigits(kind: AnswerSpec["kind"], slot: Slot) {
+  if (slot === "exp") return 2;
+  if (kind === "sci") return 4;
+  if (kind === "decimal") return 10;
+  return 5;
+}
 
 /** Aplica una tecla al borrador. Devuelve el nuevo borrador y el casillero activo. */
 export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: string): { draft: Draft; slot: Slot } {
   const slots = slotsFor(kind);
+  // En notación científica el signo es del exponente (el primer número siempre es positivo acá).
+  if (key === "±" && kind === "sci") return { draft: { ...d, expNeg: !d.expNeg }, slot: "exp" };
   if (key === "±") return { draft: { ...d, neg: !d.neg }, slot };
   if (key === "next") {
     const i = slots.indexOf(slot);
@@ -25,6 +35,7 @@ export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: st
   }
   if (key === "⌫") {
     const cur = d[slot];
+    if (slot === "exp" && cur === "" && d.expNeg) return { draft: { ...d, expNeg: false }, slot };
     if (cur === "" && slots.length > 1) {
       const i = slots.indexOf(slot);
       if (i > 0) return { draft: d, slot: slots[i - 1] };
@@ -32,23 +43,28 @@ export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: st
     return { draft: { ...d, [slot]: cur.slice(0, -1) }, slot };
   }
   if (key === ",") {
-    if (kind !== "decimal") return { draft: d, slot };
-    if (d.text.includes(",")) return { draft: d, slot };
-    return { draft: { ...d, text: (d.text === "" ? "0" : d.text) + "," }, slot };
+    if (kind !== "decimal" && kind !== "sci") return { draft: d, slot };
+    if (d.text.includes(",")) return { draft: d, slot: "text" };
+    return { draft: { ...d, text: (d.text === "" ? "0" : d.text) + "," }, slot: "text" };
   }
   if (/^\d$/.test(key)) {
     const cur = d[slot];
     const digits = cur.replace(",", "").length;
-    if (digits >= MAX) return { draft: d, slot };
+    if (digits >= maxDigits(kind, slot)) return { draft: d, slot };
     const next = cur === "0" ? key : cur + key;
     return { draft: { ...d, [slot]: next }, slot };
   }
   return { draft: d, slot };
 }
 
-function SlotBox({ value, active, label, onClick }: { value: string; active: boolean; label: string; onClick: () => void }) {
+function SlotBox({ value, active, label, onClick, className = "" }: { value: string; active: boolean; label: string; onClick: () => void; className?: string }) {
   return (
-    <button type="button" className={`slot${active ? " is-active" : ""}${value ? "" : " is-empty"}`} onClick={onClick} aria-label={`${label}: ${value || "vacío"}`}>
+    <button
+      type="button"
+      className={`slot${active ? " is-active" : ""}${value ? "" : " is-empty"}${className ? ` ${className}` : ""}`}
+      onClick={onClick}
+      aria-label={`${label}: ${value || "vacío"}`}
+    >
       <span className="slot-val">{value}</span>
       {active && <span className="caret" aria-hidden="true" />}
     </button>
@@ -90,7 +106,23 @@ export function AnswerDisplay({
           </span>
         </>
       )}
-      {(kind === "integer" || kind === "decimal") && <SlotBox value={draft.text} active label={kind === "decimal" ? "Número decimal" : "Número"} onClick={() => setSlot("text")} />}
+      {(kind === "integer" || kind === "decimal") && (
+        <SlotBox value={groupThousands(draft.text)} active label={kind === "decimal" ? "Número decimal" : "Número"} onClick={() => setSlot("text")} />
+      )}
+      {kind === "sci" && (
+        <span className="ans-sci">
+          <SlotBox value={draft.text} active={slot === "text"} label="Primer número" onClick={() => setSlot("text")} />
+          <span className="ans-times">·</span>
+          <span className="ans-ten">10</span>
+          <SlotBox
+            value={(draft.expNeg ? "−" : "") + draft.exp}
+            active={slot === "exp"}
+            label="Exponente"
+            onClick={() => setSlot("exp")}
+            className="slot-exp"
+          />
+        </span>
+      )}
     </div>
   );
 }
@@ -135,13 +167,64 @@ export function Keypad({
   const nextSlot = slots[(slots.indexOf(slot) + 1) % slots.length];
   const nextName = nextSlot === "den" ? "Ir al denominador" : nextSlot === "num" ? "Ir al numerador" : "Ir a la parte entera";
   const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+  const digitKeys = digits.map((d) => (
+    <button key={d} type="button" className="key" onClick={() => onKey(d)} disabled={disabled}>
+      {d}
+    </button>
+  ));
+  const back = (
+    <button type="button" className="key key-fn" onClick={() => onKey("⌫")} disabled={disabled} aria-label="Borrar">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+        <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z" className="ico-line" />
+        <path d="M12 9l5 6M17 9l-5 6" className="ico-line" />
+      </svg>
+    </button>
+  );
+  if (kind === "sci") {
+    // [ir al otro casillero] [coma o signo del exponente] [borrar] [servir]
+    const onExp = slot === "exp";
+    return (
+      <div className="keypad" role="group" aria-label="Teclado">
+        {digitKeys}
+        <button
+          type="button"
+          className="key key-fn key-sci"
+          onClick={() => onKey("next")}
+          disabled={disabled}
+          aria-label={onExp ? "Volver al primer número" : "Ir al exponente"}
+          title={onExp ? "Volver al primer número" : "Ir al exponente"}
+        >
+          {onExp ? (
+            <span className="key-sci-label">
+              <b>a</b>·10
+            </span>
+          ) : (
+            <span className="key-sci-label">
+              10<sup>
+                <b>n</b>
+              </sup>
+            </span>
+          )}
+        </button>
+        {onExp ? (
+          <button type="button" className="key key-fn" onClick={() => onKey("±")} disabled={disabled} aria-label="Cambiar el signo del exponente">
+            ±
+          </button>
+        ) : (
+          <button type="button" className="key key-fn" onClick={() => onKey(",")} disabled={disabled} aria-label="Coma decimal">
+            ,
+          </button>
+        )}
+        {back}
+        <button type="button" className="key key-go" onClick={onSubmit} disabled={disabled}>
+          {submitLabel}
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="keypad" role="group" aria-label="Teclado">
-      {digits.map((d) => (
-        <button key={d} type="button" className="key" onClick={() => onKey(d)} disabled={disabled}>
-          {d}
-        </button>
-      ))}
+      {digitKeys}
       <button type="button" className="key key-fn" onClick={() => onKey("±")} disabled={disabled} aria-label="Cambiar signo">
         ±
       </button>
@@ -156,12 +239,7 @@ export function Keypad({
       ) : (
         <span className="key key-blank" aria-hidden="true" />
       )}
-      <button type="button" className="key key-fn" onClick={() => onKey("⌫")} disabled={disabled} aria-label="Borrar">
-        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-          <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z" className="ico-line" />
-          <path d="M12 9l5 6M17 9l-5 6" className="ico-line" />
-        </svg>
-      </button>
+      {back}
       <button type="button" className="key key-go" onClick={onSubmit} disabled={disabled}>
         {submitLabel}
       </button>

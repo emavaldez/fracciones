@@ -1,6 +1,9 @@
 // Solo para desarrollo (#galeria): muestra un ejemplo de cada generador con su explicación.
 import { MathView, RichText } from "../components/MathView";
 import { OnePizza, Pizzas } from "../components/Pizza";
+import { NumberLine } from "../components/NumberLine";
+import { Steps } from "../components/Steps";
+import { sciText } from "../math/sci";
 import { WORLDS } from "../game/worlds";
 import { makeRng } from "../math/rng";
 import type { GenEntry, Question } from "../game/types";
@@ -27,6 +30,10 @@ function Q({ q }: { q: Question }) {
           ))}
         </div>
       )}
+      {q.line && <NumberLine spec={q.line} />}
+      {q.answer.kind === "point" && (
+        <NumberLine spec={q.answer.line} parts={q.answer.pickParts ? q.answer.value.d : undefined} extra={[{ value: q.answer.value, tone: "ok" }]} />
+      )}
       {q.answer.kind === "choice" && (
         <div className="choices">
           {q.answer.options.map((o, i) => (
@@ -39,24 +46,10 @@ function Q({ q }: { q: Question }) {
         </div>
       )}
       <p>
-        <b>Respuesta:</b> {q.answer.kind === "choice" ? q.answer.correct : String(q.answer.value)} ({q.answer.kind})
+        <b>Respuesta:</b>{" "}
+        {q.answer.kind === "choice" ? q.answer.correct : q.answer.kind === "sci" ? <RichText text={sciText(q.answer.m, q.answer.e)} /> : String(q.answer.value)} ({q.answer.kind})
       </p>
-      <ol className="steps">
-        {q.steps.map((s, i) => (
-          <li key={i}>
-            {s.text && (
-              <p>
-                <RichText text={s.text} />
-              </p>
-            )}
-            {s.math && (
-              <div className="steps-math">
-                <MathView e={s.math} size="sm" />
-              </div>
-            )}
-          </li>
-        ))}
-      </ol>
+      <Steps steps={q.steps} />
       {q.followUp && <Q q={q.followUp} />}
     </div>
   );

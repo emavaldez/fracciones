@@ -102,7 +102,8 @@ export function isIrreducible(n: number, d: number) {
 
 /** Convierte un decimal finito escrito como string ("0,375") a fracción. */
 export function decimalStringToFraction(s: string): Fraction | null {
-  const clean = s.trim().replace(",", ".");
+  // Acepta espacios para separar miles ("45 000 000") y el signo menos tipográfico.
+  const clean = s.replace(/[\s  ]/g, "").replace("−", "-").replace(",", ".");
   if (!/^-?\d*(\.\d*)?$/.test(clean) || clean === "" || clean === "-" || clean === "." || clean === "-.") return null;
   const neg = clean.startsWith("-");
   const body = neg ? clean.slice(1) : clean;
@@ -112,14 +113,21 @@ export function decimalStringToFraction(s: string): Fraction | null {
   return new Fraction(neg ? -num : num, den);
 }
 
-/** Expresión decimal finita de una fracción (si existe), con coma. */
+/** Expresión decimal finita y exacta de una fracción (si existe), con coma. */
 export function fractionToDecimalString(f: Fraction): string | null {
   let d = f.d;
-  while (d % 2 === 0) d /= 2;
-  while (d % 5 === 0) d /= 5;
+  let k2 = 0;
+  let k5 = 0;
+  while (d % 2 === 0) ((d /= 2), k2++);
+  while (d % 5 === 0) ((d /= 5), k5++);
   if (d !== 1) return null;
-  const v = f.value();
-  // Hasta 6 decimales alcanza para los ejercicios del juego.
-  let s = v.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
-  return s.replace(".", ",");
+  // n/d = n·(10^k/d) / 10^k
+  const k = Math.max(k2, k5);
+  const scaled = BigInt(Math.abs(f.n)) * (10n ** BigInt(k) / BigInt(f.d));
+  let digits = scaled.toString();
+  if (k > 0) {
+    digits = digits.padStart(k + 1, "0");
+    digits = `${digits.slice(0, -k)},${digits.slice(-k)}`.replace(/0+$/, "").replace(/,$/, "");
+  }
+  return (f.n < 0 ? "-" : "") + digits;
 }
