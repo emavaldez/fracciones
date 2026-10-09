@@ -4,6 +4,9 @@ import { N, X, coef, fr, par, pow, root, row, type Expr } from "../../math/expr"
 import type { Rng } from "../../math/rng";
 import { cleanTraps, ft, gen, nice, retry } from "../helpers";
 import type { Question, Step, Trap } from "../types";
+import { tn, tx, type BoardSpec } from "../board";
+
+const ONE = F(1);
 
 const RULE_POT = "Las potencias pasan al otro lado como raíces, y las raíces como potencias. Ojo: x² = a tiene dos soluciones, una positiva y una negativa.";
 const RULE_EQ = "Para despejar x, lo que suma pasa restando, lo que resta pasa sumando, lo que multiplica pasa dividiendo y lo que divide pasa multiplicando.";
@@ -41,9 +44,10 @@ function verify(x: Fraction, value: Fraction): Step {
   return { text: `Verificamos: reemplazando x por ${ft(x)}, el primer miembro da ${ft(value)}, como tenía que dar.` };
 }
 
-function build(r: Rng, math: Expr, x: Fraction, traps: Trap[], hint: string, steps: Step[] = [], story?: string): Question {
+function build(r: Rng, math: Expr, x: Fraction, traps: Trap[], hint: string, steps: Step[] = [], story?: string, board?: BoardSpec): Question {
   return {
     gen: "",
+    board,
     title: "Despejá x",
     story: story ?? r.pick(["La receta secreta está escondida en esta ecuación.", "La caja fuerte se abre con el valor de x.", undefined]),
     math,
@@ -76,7 +80,10 @@ export const ecuacionUnPaso = gen("w8-un-paso", (r) => {
         { text: "Resolvemos:", math: row(X, "=", opText(b, moving.n < 0 ? "-" : "+", moving.abs())) },
         verify(x, b),
       ];
-      return build(r, eq, x, [{ value: b.add(a), msg: a.n > 0 ? "Al pasar al otro miembro, lo que SUMA pasa RESTANDO." : "Al pasar al otro miembro, lo que RESTA pasa SUMANDO." }], a.n > 0 ? "Lo que suma pasa restando." : "Lo que resta pasa sumando.", steps);
+      return build(r, eq, x, [{ value: b.add(a), msg: a.n > 0 ? "Al pasar al otro miembro, lo que SUMA pasa RESTANDO." : "Al pasar al otro miembro, lo que RESTA pasa SUMANDO." }], a.n > 0 ? "Lo que suma pasa restando." : "Lo que resta pasa sumando.", steps, undefined, {
+        L: { terms: [tx(ONE), tn(a)] },
+        R: { terms: [tn(b)] },
+      });
     }
     if (kind === 2) {
       const c = coefFrac(r);
@@ -91,7 +98,7 @@ export const ecuacionUnPaso = gen("w8-un-paso", (r) => {
         { value: b.mul(c), msg: "Lo que MULTIPLICA a la x pasa DIVIDIENDO, no multiplicando." },
         { value: b.sub(c), msg: "El número está multiplicando a la x: no se resta, se divide." },
         { value: c.div(b), msg: "Dividiste al revés: es lo del otro lado dividido el coeficiente." },
-      ], "Lo que multiplica a la x pasa dividiendo.", steps);
+      ], "Lo que multiplica a la x pasa dividiendo.", steps, undefined, { L: { terms: [tx(c)] }, R: { terms: [tn(b)] } });
     }
     const c = coefFrac(r);
     const b = x.div(c);
@@ -101,7 +108,10 @@ export const ecuacionUnPaso = gen("w8-un-paso", (r) => {
       { text: "El número está dividiendo a la x: pasa al otro lado MULTIPLICANDO.", math: row(X, "=", fr(b), "·", fr(c)) },
       { text: "Resolvemos:", math: row(X, "=", opText(b, "·", c)) },
     ];
-    return build(r, eq, x, [{ value: b.div(c), msg: "Lo que DIVIDE pasa MULTIPLICANDO." }], "Lo que divide a la x pasa multiplicando.", steps);
+    return build(r, eq, x, [{ value: b.div(c), msg: "Lo que DIVIDE pasa MULTIPLICANDO." }], "Lo que divide a la x pasa multiplicando.", steps, undefined, {
+      L: { terms: [{ c: ONE, div: c }] },
+      R: { terms: [tn(b)] },
+    });
   });
 });
 
@@ -126,7 +136,10 @@ export const ecuacionDosPasos = gen("w8-dos-pasos", (r) => {
         { value: b.div(c).sub(a), msg: "Dividiste antes de sacar el término sin x. Primero pasá lo que suma o resta, y DESPUÉS lo que multiplica (o dividí TODO el otro lado)." },
         { value: b.add(a).div(c), msg: a.n > 0 ? "Lo que SUMA pasa RESTANDO." : "Lo que RESTA pasa SUMANDO." },
         { value: moved.mul(c), msg: "Lo que MULTIPLICA a la x pasa DIVIDIENDO." },
-      ], "Primero pasá el término que no tiene x. Después, lo que multiplica a la x.", steps);
+      ], "Primero pasá el término que no tiene x. Después, lo que multiplica a la x.", steps, undefined, {
+        L: { terms: [tx(c), tn(a)] },
+        R: { terms: [tn(b)] },
+      });
     }
     // c(x + a) = b
     const b = c.mul(x.add(a));
@@ -142,7 +155,10 @@ export const ecuacionDosPasos = gen("w8-dos-pasos", (r) => {
     return build(r, eq, x, [
       { value: b.sub(a).div(c), msg: `El ${c.d === 1 ? c.n : "coeficiente"} multiplica a TODO el paréntesis (también al número). Primero pasalo dividiendo, o aplicá la propiedad distributiva a los dos términos.` },
       { value: b.mul(c).sub(a), msg: "Lo que MULTIPLICA pasa DIVIDIENDO." },
-    ], "Pasá dividiendo el número de afuera del paréntesis.", steps);
+    ], "Pasá dividiendo el número de afuera del paréntesis.", steps, undefined, {
+      L: { factor: c, terms: [tx(ONE), tn(a)] },
+      R: { terms: [tn(b)] },
+    });
   });
 });
 
@@ -170,7 +186,10 @@ export const ecuacionDosMiembros = gen("w8-dos-miembros", (r) => {
     return build(r, eq, x, [
       { value: rhs.div(c1.add(c2)), msg: "Al pasar el término con x al otro lado cambia de signo: queda restando, no sumando." },
       { value: b.add(a).div(cd), msg: "Al pasar un número al otro miembro cambia el signo." },
-    ], "Llevá las x a un lado y los números al otro. Cada término que cruza el = cambia de signo.", steps);
+    ], "Llevá las x a un lado y los números al otro. Cada término que cruza el = cambia de signo.", steps, undefined, {
+      L: { terms: [tx(c1), tn(a)] },
+      R: { terms: [tx(c2), tn(b)] },
+    });
   });
 });
 
@@ -187,7 +206,7 @@ export const ecuacionPotRaiz = gen("w8-pot-raiz", (r) => {
       const q = build(r, row(pow(X, 2), "=", fr(s)), p, [
         { value: s.div(F(2)), msg: "Elevar al cuadrado no es multiplicar por 2: la operación inversa es la raíz cuadrada." },
         { value: s.pow(2), msg: "Lo contrario de elevar al cuadrado es sacar raíz cuadrada, no volver a elevar." },
-      ], "La potencia pasa al otro lado como raíz.");
+      ], "La potencia pasa al otro lado como raíz.", [], undefined, { L: { terms: [{ c: ONE, pow: 2 }] }, R: { terms: [tn(s)] } });
       q.title = "Despejá x (la solución positiva)";
       q.rule = RULE_POT;
     q.steps = [
@@ -204,7 +223,7 @@ export const ecuacionPotRaiz = gen("w8-pot-raiz", (r) => {
       const q = build(r, row(pow(X, 3), "=", fr(s)), pp, [
         { value: pp.neg(), msg: "Raíz cúbica de un número negativo es negativa (y de un positivo, positiva)." },
         { value: s.div(F(3)), msg: "Elevar al cubo no es multiplicar por 3: lo inverso es la raíz cúbica." },
-      ], "El cubo pasa al otro lado como raíz cúbica.");
+      ], "El cubo pasa al otro lado como raíz cúbica.", [], undefined, { L: { terms: [{ c: ONE, pow: 3 }] }, R: { terms: [tn(s)] } });
       q.rule = RULE_POT;
     q.steps = [
         { text: "La potencia 3 pasa como raíz cúbica:", math: row(X, "=", root(3, fr(s))) },
@@ -219,7 +238,7 @@ export const ecuacionPotRaiz = gen("w8-pot-raiz", (r) => {
         ...(p.root(2) ? [{ value: p.root(2)!, msg: "La raíz pasa al otro lado como POTENCIA: hay que elevar al cuadrado." }] : []),
         { value: p.mul(F(2)), msg: "Elevar al cuadrado no es multiplicar por 2." },
         { value: p, msg: "Te faltó elevar al cuadrado: la raíz pasa al otro lado como potencia." },
-      ], "La raíz pasa al otro lado como potencia.");
+      ], "La raíz pasa al otro lado como potencia.", [], undefined, { L: { terms: [{ c: ONE, root: 2 }] }, R: { terms: [tn(p)] } });
       q.rule = RULE_POT;
     q.steps = [
         { text: "La raíz cuadrada pasa al otro lado como potencia 2:", math: row(X, "=", pow(fr(p), 2)) },
@@ -231,7 +250,7 @@ export const ecuacionPotRaiz = gen("w8-pot-raiz", (r) => {
     const q = build(r, row(pow(X, -1), "=", fr(pp)), pp.inv(), [
       { value: pp, msg: "x elevado a la −1 es el inverso de x. Entonces x es el inverso de ese número." },
       { value: pp.neg(), msg: "El exponente −1 no cambia el signo: da vuelta la fracción." },
-    ], "x elevado a la −1 es el inverso de x.");
+    ], "x elevado a la −1 es el inverso de x.", [], undefined, { L: { terms: [{ c: ONE, pow: -1 }] }, R: { terms: [tn(pp)] } });
     q.rule = RULE_POT;
     q.steps = [
       { text: "x elevado a la −1 es el inverso de x. Si el inverso de x es ese número, x es su inverso:", math: row(X, "=", pow(fr(pp), -1)) },

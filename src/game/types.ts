@@ -1,6 +1,7 @@
 import type { Fraction } from "../math/fraction";
 import type { Expr } from "../math/expr";
 import type { Rng } from "../math/rng";
+import type { BoardSpec } from "./board";
 
 /** Una línea de explicación: texto (con fracciones en línea {3/4}) y/o una expresión. */
 export interface Step {
@@ -53,6 +54,8 @@ export interface Question {
   steps: Step[];
   /** Regla general para recordar (se muestra en el panel de explicación). */
   rule?: string;
+  /** Ecuación para resolver paso a paso en la mesa de trabajo. */
+  board?: BoardSpec;
   /** Segunda parte que se juega inmediatamente después (problemas de dos pasos). */
   followUp?: Question;
 }

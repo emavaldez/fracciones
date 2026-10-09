@@ -15,6 +15,11 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   7. La Cocina a Full: operaciones combinadas (términos, paréntesis, corchetes)
   8. La Receta Secreta: ecuaciones (uno y dos pasos, x en los dos miembros, potencias y raíces)
   9. El Delivery: problemas con enunciado, incluidos los de plantear la ecuación y resolverla
+- **Ecuaciones paso a paso**: en La Receta Secreta y en los problemas del Delivery, la ecuación se despeja en una mesa de trabajo.
+  Se arrastra un término al otro lado del `=` (o se lo toca y se elige qué hacer) y el juego pregunta cómo llega: sumando o restando,
+  multiplicando o dividiendo, como raíz o como potencia. Las cuentas para juntar términos las hace el jugador con el teclado.
+  Cada error se explica en el momento, se puede deshacer, la pista sugiere el próximo paso y al final se muestran todos los pasos.
+  Quien ya sabe el resultado puede tocar "Saltear pasos" y escribirlo directo.
 - **Ejercicios generados al azar**: cada partida es distinta.
 - **Explicación de errores**: si la respuesta coincide con un error típico (sumar denominadores, multiplicar en vez de dividir, elevar solo el numerador, olvidarse del signo, etc.), el juego dice exactamente qué pasó. Siempre muestra la resolución paso a paso y la regla para recordar.
 - **Revancha**: si se erra una comanda, más adelante aparece otra parecida.
@@ -74,6 +79,7 @@ src/
     worlds.ts  sectores, niveles y jefes
     recipes.ts la teoría de cada sector
     check.ts   corrección de respuestas y diagnóstico de errores
+    board.ts   la mesa de ecuaciones: movimientos, cuentas, sugerencias (sin interfaz, con pruebas)
   components/  dibujo de fracciones/potencias/raíces, pizzas, teclado
   screens/     portada, mapa, partida, resultados
 tests/         pruebas de los generadores
@@ -84,6 +90,8 @@ lista de **errores típicos** (`traps`): el valor al que se llega con ese error 
 
 Las pruebas generan cientos de ejercicios por tipo y verifican que la respuesta correcta se acepte, que ningún
 error típico coincida con la respuesta, y que **todas las igualdades de las explicaciones sean verdaderas**.
+Para la mesa de ecuaciones, resuelven miles de ecuaciones siguiendo las pistas y también haciendo movimientos al azar,
+y comprueban que después de cada paso la ecuación siga teniendo la misma solución.
 
 ### Agregar un tipo de ejercicio
 

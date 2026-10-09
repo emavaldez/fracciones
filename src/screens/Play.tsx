@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MathView, RichText } from "../components/MathView";
 import { Pizzas, OnePizza } from "../components/Pizza";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
+import { BoardPath, BoardStage, type BoardSummary } from "../components/EquationBoard";
+import { Steps } from "../components/Steps";
 import { check, emptyDraft, validate, type Draft, type Verdict } from "../game/check";
 import { buildQueue, signature, similar } from "../game/session";
 import { findLevel } from "../game/worlds";
-import type { Question, Step } from "../game/types";
+import type { Question } from "../game/types";
 import { makeRng } from "../math/rng";
 import { dec, fr, mixedOf, N, toText } from "../math/expr";
 import { fractionToDecimalString } from "../math/fraction";
@@ -41,27 +43,6 @@ const CUSTOMERS: [string, string][] = [
 const GOOD = ["¡Al punto!", "¡Salió perfecta!", "¡Qué muzza!", "¡Crocante!", "¡Impecable!", "¡De diez!"];
 const BAD = ["¡Se quemó!", "Esa vuelve a la cocina", "Uy, se pasó de horno", "Le faltó cocción"];
 const MAX_EXTRA = 3;
-
-function Steps({ steps }: { steps: Step[] }) {
-  return (
-    <ol className="steps">
-      {steps.map((s, i) => (
-        <li key={i}>
-          {s.text && (
-            <p>
-              <RichText text={s.text} />
-            </p>
-          )}
-          {s.math && (
-            <div className="steps-math">
-              <MathView e={s.math} size="sm" />
-            </div>
-          )}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function CorrectAnswer({ q }: { q: Question }) {
   const a = q.answer;
@@ -106,13 +87,17 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const [extra, setExtra] = useState(0);
   const [requeued, setRequeued] = useState(false);
   const [earned, setEarned] = useState(0);
-  const stats = useRef({ correct: 0, wrong: 0, coins: 0, streak: 0, best: 0 });
+  const stats = useRef({ correct: 0, wrong: 0, helped: 0, coins: 0, streak: 0, best: 0 });
+  // Ecuaciones: mesa de trabajo paso a paso, salvo que el jugador elija escribir el resultado directo.
+  const [direct, setDirect] = useState(false);
+  const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
   const [coins, setCoins] = useState(0);
   const [streak, setStreak] = useState(0);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
 
   const q = queue[idx];
+  const boardMode = !!q?.board && !direct;
   // Las segundas partes de un problema siguen siendo del mismo cliente.
   const followUps = useRef(new WeakSet<Question>());
   const offset = useMemo(() => Math.floor(Math.random() * CUSTOMERS.length), []);
@@ -131,6 +116,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     setShowHow(false);
     setVerdict(null);
     setRequeued(false);
+    setDirect(false);
+    setBoardSummary(null);
     setPhase("answer");
   }, []);
 
@@ -188,6 +175,36 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     if (newQueue !== queue) setQueue(newQueue);
   }, [phase, q, draft, choice, queue, idx, isBoss, hint, extra, level, rng]);
 
+  const finishBoard = useCallback(
+    (sum: BoardSummary) => {
+      if (phase !== "answer" || !q) return;
+      const s = stats.current;
+      setBoardSummary(sum);
+      setVerdict({ correct: true, diagnosis: null, given: "" });
+      setPhase("feedback");
+      s.correct++;
+      if (sum.slips === 0) s.streak++;
+      else s.streak = 0;
+      s.best = Math.max(s.best, s.streak);
+      const base = isBoss ? 20 : 10;
+      const bonus = s.streak >= 5 ? 10 : s.streak >= 3 ? 5 : 0;
+      const gained = Math.max(2, Math.round((base + bonus) * (hint ? 0.5 : 1)) - 3 * sum.slips);
+      s.coins += gained;
+      setEarned(gained);
+      setCoins(s.coins);
+      // Con varios errores en el camino cuenta como "con ayuda" (y en el jefe cuesta una vida).
+      if (sum.slips >= 2) {
+        s.helped++;
+        if (isBoss) setLives((l) => l - 1);
+      }
+      setStreak(s.streak);
+      if (sum.slips === 0 && (s.streak === 3 || s.streak === 5 || s.streak === 10)) sfx.streak();
+      else sfx.correct();
+      window.setTimeout(() => sfx.coin(), 260);
+    },
+    [phase, q, isBoss, hint],
+  );
+
   const finish = useCallback(
     (lost: boolean) => {
       const s = stats.current;
@@ -195,7 +212,10 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
       let pizzas = 0;
       if (!lost) {
         if (isBoss) pizzas = Math.max(1, lives);
-        else pizzas = s.wrong <= 1 ? 3 : s.wrong <= 3 ? 2 : 1;
+        else {
+          const errs = s.wrong + s.helped;
+          pizzas = errs <= 1 ? 3 : errs <= 3 ? 2 : 1;
+        }
       }
       onFinish({ levelId, served, correct: s.correct, wrong: s.wrong, coins: s.coins, bestStreak: s.best, pizzas, lost });
     },
@@ -231,6 +251,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         return;
       }
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      // La mesa de ecuaciones maneja su propio teclado.
+      if (boardMode && phase === "answer") return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         if (phase === "answer") submit();
@@ -255,7 +277,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [started, phase, q, submit, next, onKey]);
+  }, [started, phase, q, submit, next, onKey, boardMode]);
 
   useEffect(() => {
     if (phase === "feedback") feedbackRef.current?.focus();
@@ -295,6 +317,33 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const total = queue.length;
   const progress = (idx + (phase === "feedback" ? 1 : 0)) / total;
 
+  const ticketHead = (
+    <>
+      <div className="ticket-head">
+        <span className="ticket-customer">
+          <span className="ticket-avatar" aria-hidden="true">
+            {isBoss ? level.boss!.emoji : customer[1]}
+          </span>
+          <span>
+            <span className="ticket-name">{isBoss ? level.boss!.name : customer[0]}</span>
+            <span className="ticket-table">{isBoss ? "Mesa VIP" : `Mesa ${table}`}</span>
+          </span>
+        </span>
+        {phase === "answer" && !hint && (
+          <button type="button" className="btn btn-ghost btn-small" onClick={() => setHint(true)}>
+            Pista
+          </button>
+        )}
+      </div>
+      {q.story && !(boardMode && q.gen.startsWith("w8")) && (
+        <p className="ticket-story">
+          <RichText text={q.story} />
+        </p>
+      )}
+      <h2 className="ticket-title">{boardMode ? (q.title === "Despejá x" ? "Despejá x paso a paso" : q.title) : q.title}</h2>
+    </>
+  );
+
   return (
     <div className={`screen play${isBoss ? " is-boss" : ""}`}>
       <header className="play-top">
@@ -331,126 +380,128 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         {streak >= 3 && <span className="streak">Racha ×{streak}</span>}
       </div>
 
-      <main className="ticket-wrap" ref={ticketRef}>
-        <article className="ticket" key={idx}>
-          <div className="ticket-head">
-            <span className="ticket-customer">
-              <span className="ticket-avatar" aria-hidden="true">
-                {isBoss ? level.boss!.emoji : customer[1]}
-              </span>
-              <span>
-                <span className="ticket-name">{isBoss ? level.boss!.name : customer[0]}</span>
-                <span className="ticket-table">{isBoss ? "Mesa VIP" : `Mesa ${table}`}</span>
-              </span>
-            </span>
-            {phase === "answer" && !hint && (
-              <button type="button" className="btn btn-ghost btn-small" onClick={() => setHint(true)}>
-                Pista
+      {boardMode ? (
+        <BoardStage
+          key={idx}
+          spec={q.board!}
+          header={ticketHead}
+          hintOn={hint}
+          disabled={phase !== "answer"}
+          ticketRef={ticketRef}
+          onSolved={finishBoard}
+          onDirect={() => {
+            setDirect(true);
+            setSlot("num");
+          }}
+        />
+      ) : (
+        <>
+          <main className="ticket-wrap" ref={ticketRef}>
+            <article className="ticket" key={idx}>
+              {ticketHead}
+              {q.math && (
+                <div className="ticket-math">
+                  <MathView e={q.math} size="lg" />
+                </div>
+              )}
+              {q.pizzas && (
+                <div className="ticket-pizzas">
+                  {q.pizzas.map((p, i) => (
+                    <Pizzas key={i} spec={p} size={q.pizzas!.length > 1 ? 96 : 120} />
+                  ))}
+                </div>
+              )}
+              {hint && phase === "answer" && (
+                <div className="hint" role="note">
+                  <strong>Pista:</strong>{" "}
+                  {q.hint.map((h, i) => (
+                    <span key={i}>
+                      {h.text && <RichText text={h.text} />}
+                      {h.math && <MathView e={h.math} size="sm" />}
+                    </span>
+                  ))}
+                  <span className="hint-cost"> (esta comanda da la mitad de propina)</span>
+                </div>
+              )}
+
+              {kind === "choice" ? (
+                <div
+                  className={`choices${q.answer.kind === "choice" && q.answer.options.some((o) => o.pizza) ? " has-pizzas" : ""}${
+                    q.answer.kind === "choice" && q.answer.options.some((o) => (o.math ? toText(o.math).length > 14 : (o.label ?? "").length > 22)) ? " is-wide" : ""
+                  }`}
+                  role="radiogroup"
+                  aria-label="Opciones"
+                >
+                  {q.answer.kind === "choice" &&
+                    q.answer.options.map((o, i) => {
+                      const state =
+                        phase === "feedback" && q.answer.kind === "choice"
+                          ? i === q.answer.correct
+                            ? " is-right"
+                            : i === choice
+                              ? " is-wrong"
+                              : ""
+                          : choice === i
+                            ? " is-picked"
+                            : "";
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          role="radio"
+                          aria-checked={choice === i}
+                          className={`choice${state}`}
+                          onClick={() => {
+                            if (phase !== "answer") return;
+                            sfx.tap();
+                            setChoice(i);
+                            setWarn(null);
+                          }}
+                        >
+                          {o.label && <span className={`choice-label${o.label.length <= 2 ? " choice-sym" : ""}`}>{o.label}</span>}
+                          {o.math && <MathView e={o.math} size="md" />}
+                          {o.pizza && <OnePizza slices={o.pizza.slices} filled={o.pizza.filled} size={84} />}
+                        </button>
+                      );
+                    })}
+                </div>
+              ) : (
+                <AnswerDisplay kind={kind} draft={draft} slot={slot} setSlot={setSlot} prefix={q.answerPrefix} />
+              )}
+              {warn && (
+                <p className="warn" role="alert">
+                  {warn}
+                </p>
+              )}
+              {q.board && direct && phase === "answer" && (
+                <button type="button" className="btn btn-ghost btn-small back-to-board" onClick={() => setDirect(false)}>
+                  Mejor resolverlo paso a paso
+                </button>
+              )}
+            </article>
+          </main>
+
+          <footer className="play-bottom">
+            {kind === "choice" ? (
+              <button type="button" className="btn btn-primary btn-big btn-block" onClick={submit} disabled={phase !== "answer"}>
+                Servir
               </button>
+            ) : (
+              <Keypad
+                kind={kind}
+                slot={slot}
+                onKey={(k) => {
+                  sfx.tap();
+                  onKey(k);
+                }}
+                onSubmit={submit}
+                submitLabel="Servir"
+                disabled={phase !== "answer"}
+              />
             )}
-          </div>
-          {q.story && (
-            <p className="ticket-story">
-              <RichText text={q.story} />
-            </p>
-          )}
-          <h2 className="ticket-title">{q.title}</h2>
-          {q.math && (
-            <div className="ticket-math">
-              <MathView e={q.math} size="lg" />
-            </div>
-          )}
-          {q.pizzas && (
-            <div className="ticket-pizzas">
-              {q.pizzas.map((p, i) => (
-                <Pizzas key={i} spec={p} size={q.pizzas!.length > 1 ? 96 : 120} />
-              ))}
-            </div>
-          )}
-          {hint && phase === "answer" && (
-            <div className="hint" role="note">
-              <strong>Pista:</strong>{" "}
-              {q.hint.map((h, i) => (
-                <span key={i}>
-                  {h.text && <RichText text={h.text} />}
-                  {h.math && <MathView e={h.math} size="sm" />}
-                </span>
-              ))}
-              <span className="hint-cost"> (esta comanda da la mitad de propina)</span>
-            </div>
-          )}
-
-          {kind === "choice" ? (
-            <div
-              className={`choices${q.answer.kind === "choice" && q.answer.options.some((o) => o.pizza) ? " has-pizzas" : ""}${
-                q.answer.kind === "choice" && q.answer.options.some((o) => (o.math ? toText(o.math).length > 14 : (o.label ?? "").length > 22)) ? " is-wide" : ""
-              }`}
-              role="radiogroup"
-              aria-label="Opciones"
-            >
-              {q.answer.kind === "choice" &&
-                q.answer.options.map((o, i) => {
-                  const state =
-                    phase === "feedback" && q.answer.kind === "choice"
-                      ? i === q.answer.correct
-                        ? " is-right"
-                        : i === choice
-                          ? " is-wrong"
-                          : ""
-                      : choice === i
-                        ? " is-picked"
-                        : "";
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      role="radio"
-                      aria-checked={choice === i}
-                      className={`choice${state}`}
-                      onClick={() => {
-                        if (phase !== "answer") return;
-                        sfx.tap();
-                        setChoice(i);
-                        setWarn(null);
-                      }}
-                    >
-                      {o.label && <span className={`choice-label${o.label.length <= 2 ? " choice-sym" : ""}`}>{o.label}</span>}
-                      {o.math && <MathView e={o.math} size="md" />}
-                      {o.pizza && <OnePizza slices={o.pizza.slices} filled={o.pizza.filled} size={84} />}
-                    </button>
-                  );
-                })}
-            </div>
-          ) : (
-            <AnswerDisplay kind={kind} draft={draft} slot={slot} setSlot={setSlot} prefix={q.answerPrefix} />
-          )}
-          {warn && (
-            <p className="warn" role="alert">
-              {warn}
-            </p>
-          )}
-        </article>
-      </main>
-
-      <footer className="play-bottom">
-        {kind === "choice" ? (
-          <button type="button" className="btn btn-primary btn-big btn-block" onClick={submit} disabled={phase !== "answer"}>
-            Servir
-          </button>
-        ) : (
-          <Keypad
-            kind={kind}
-            slot={slot}
-            onKey={(k) => {
-              sfx.tap();
-              onKey(k);
-            }}
-            onSubmit={submit}
-            submitLabel="Servir"
-            disabled={phase !== "answer"}
-          />
-        )}
-      </footer>
+          </footer>
+        </>
+      )}
 
       {phase === "feedback" && verdict && (
         <div className="sheet-backdrop">
@@ -462,9 +513,19 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                 </span>
                 <div>
                   <h2 id="fb-title" className="fb-title">
-                    {verdict.correct ? goodWord : badWord}
+                    {verdict.correct ? (boardSummary && boardSummary.slips > 0 ? "¡Despejada!" : goodWord) : badWord}
                   </h2>
-                  {verdict.correct ? (
+                  {boardSummary ? (
+                    <p className="fb-sub">
+                      +${earned} de propina
+                      {boardSummary.slips > 0
+                        ? ` · ${boardSummary.slips === 1 ? "1 error" : `${boardSummary.slips} errores`} en el camino`
+                        : streak >= 3
+                          ? ` · racha de ${streak}`
+                          : ""}
+                      {isBoss && boardSummary.slips >= 2 ? `. Perdiste una vida: ${lives === 1 ? "te queda 1" : `te quedan ${lives}`}.` : ""}
+                    </p>
+                  ) : verdict.correct ? (
                     <p className="fb-sub">
                       +${earned} de propina{streak >= 3 ? ` · racha de ${streak}` : ""}
                     </p>
@@ -500,7 +561,42 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                 </p>
               )}
 
-              {verdict.correct ? (
+              {boardSummary ? (
+                <>
+                  <div className="fb-how">
+                    <h3>Tus pasos</h3>
+                    <BoardPath history={boardSummary.history} />
+                  </div>
+                  {boardSummary.mistakes.length > 0 && (
+                    <div className="fb-diagnosis">
+                      <h3>Para repasar</h3>
+                      <ul className="fb-mistakes">
+                        {boardSummary.mistakes
+                          .filter((m, i, all) => all.findIndex((o) => o.text === m.text) === i)
+                          .slice(0, 3)
+                          .map((m, i) => (
+                            <li key={i}>
+                              {m.math && (
+                                <>
+                                  <span className="fb-mistake-math">
+                                    En la cuenta <MathView e={m.math} size="sm" />
+                                  </span>
+                                  {": "}
+                                </>
+                              )}
+                              <RichText text={m.text} />
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {q.rule && (
+                    <p className="fb-rule">
+                      <strong>Para recordar:</strong> {q.rule}
+                    </p>
+                  )}
+                </>
+              ) : verdict.correct ? (
                 <details className="fb-how" open={showHow} onToggle={(e) => setShowHow((e.target as HTMLDetailsElement).open)}>
                   <summary>Ver cómo se hace</summary>
                   <Steps steps={q.steps} />

@@ -87,6 +87,8 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
+  /* sin zoom por doble toque en el celular */
+  touch-action: manipulation;
 }
 
 :focus-visible {
@@ -172,8 +174,8 @@ button {
   min-height: 56px;
 }
 .btn-small {
-  padding: 4px 14px;
-  min-height: 34px;
+  padding: 6px 16px;
+  min-height: 44px;
   font-size: 0.95rem;
 }
 .btn-block {
@@ -1752,4 +1754,531 @@ button {
   .progress {
     margin: 6px 0;
   }
+}
+
+/* ---------------- Mesa de ecuaciones ---------------- */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 2px;
+}
+.board-trail {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 2px dashed var(--paper-line);
+}
+.board-trail li {
+  opacity: 0.5;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.board-trail li:last-child {
+  opacity: 0.72;
+}
+/* Los dos lados siempre a la par, con el = en el medio */
+.board-eq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0;
+}
+.board-eq > .side:first-child {
+  justify-content: flex-end;
+}
+.board-eq > .side:last-child {
+  justify-content: flex-start;
+}
+.board-eqsign {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0 2px;
+  color: var(--ink);
+}
+.side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 16px;
+  border: 2px dashed transparent;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.board.is-dragging .side.is-drop {
+  border-color: var(--tomato);
+  background: #fff1ee;
+}
+.side-inner {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+}
+.side-dot {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--ink);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 54px;
+  min-width: 44px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  background: #fff;
+  border: 2px solid var(--paper-line);
+  box-shadow: 0 3px 0 var(--paper-line);
+  color: var(--ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  transition: border-color 0.12s, background-color 0.12s, transform 0.12s;
+}
+.chip:hover {
+  border-color: var(--cheese-deep);
+}
+.chip:disabled {
+  cursor: default;
+}
+.chip .m {
+  pointer-events: none;
+}
+.chip .m-md {
+  font-size: 1.3rem;
+}
+.chip-sign {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-right: 3px;
+  color: var(--ink);
+}
+.chip-coef {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0 2px;
+  background: #fff6d6;
+  box-shadow: inset 0 0 0 1px #f0dd9c;
+}
+.chip-op {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin: 0 3px;
+}
+.chip.is-selected {
+  border-color: var(--tomato);
+  background: #fff1ee;
+  box-shadow: 0 3px 0 var(--tomato-deep);
+  transform: translateY(-2px);
+}
+.chip.is-hinted {
+  animation: hint-pulse 1.3s ease-in-out infinite;
+}
+@keyframes hint-pulse {
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(255, 200, 61, 0.7),
+      0 3px 0 var(--paper-line);
+  }
+}
+.chip.is-fresh {
+  animation: chip-in 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+@keyframes chip-in {
+  from {
+    transform: scale(0.4);
+    background: #fff4cf;
+  }
+  to {
+    transform: none;
+  }
+}
+.board.is-dragging .chip.is-combine {
+  border-style: dashed;
+  border-color: var(--cheese-deep);
+  background: #fff8e2;
+}
+.chip-pending {
+  background: #fff4cf;
+  border-color: var(--cheese-deep);
+  border-style: dashed;
+  cursor: default;
+}
+.chip-zero {
+  font-family: var(--font-math);
+  font-weight: 600;
+  font-size: 1.45rem;
+  cursor: default;
+  box-shadow: none;
+  border-style: dashed;
+  justify-content: center;
+}
+.chip-factor {
+  background: var(--wall);
+  border-color: var(--wall);
+  box-shadow: 0 3px 0 var(--wall-deep);
+}
+.chip-factor .m {
+  color: var(--cheese);
+}
+.chip.is-inner {
+  cursor: pointer;
+  min-height: 52px;
+}
+.board.is-crowded .chip {
+  min-height: 48px;
+  padding: 2px 5px;
+}
+.board.is-crowded .chip .m-md {
+  font-size: 1.12rem;
+}
+.board.is-crowded .chip-sign {
+  font-size: 1.25rem;
+}
+.board-eq.is-solved .side {
+  background: var(--ok-soft);
+}
+.board-caption {
+  margin: 0;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+.board-hint {
+  margin: 0;
+  background: #fff4cf;
+  border-left: 4px solid var(--cheese-deep);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+}
+.drag-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  transform: translate(-50%, -75%) rotate(-4deg) scale(1.1);
+  background: #fff;
+  border: 2px solid var(--tomato);
+  border-radius: 12px;
+  padding: 4px 10px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+.drag-ghost.is-coef {
+  background: #fff6d6;
+}
+
+/* cuenta */
+.bc-compute {
+  border-top: 2px dashed var(--paper-line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.bc-prompt {
+  margin: 0;
+  font-weight: 700;
+  text-align: center;
+}
+.bc-calc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.bc-calc .ans {
+  min-height: 0;
+  padding: 0;
+}
+.bc-calc .slot {
+  height: 44px;
+  min-width: 60px;
+  font-size: 1.5rem;
+}
+.bc-eq {
+  font-family: var(--font-math);
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.bc-error {
+  margin: 0;
+  background: var(--bad-soft);
+  border-radius: 10px;
+  padding: 8px 12px;
+  width: 100%;
+}
+.bc-tip {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+.bc-reveal {
+  width: 100%;
+}
+.bc-reveal > p {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+/* controles (sobre la pared verde) */
+.board-controls {
+  min-height: 0;
+}
+.bc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bc-help {
+  margin: 0;
+  text-align: center;
+  color: var(--on-wall);
+  font-size: 0.95rem;
+}
+.bc-msg {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+.bc-msg.is-bad {
+  box-shadow: inset 5px 0 0 var(--bad);
+}
+.bc-msg.is-info {
+  box-shadow: inset 5px 0 0 var(--cheese-deep);
+}
+.bc-row {
+  display: flex;
+  gap: 8px;
+}
+.bc-row > .btn {
+  flex: 1;
+  color: var(--paper);
+  min-height: 48px;
+  padding: 8px 12px;
+}
+.bc-row > .btn:disabled {
+  opacity: 0.4;
+}
+.bc-actions {
+  display: grid;
+  gap: 8px;
+}
+.bc-action {
+  border: 0;
+  border-radius: 14px;
+  min-height: 52px;
+  padding: 10px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  text-align: left;
+  box-shadow: 0 4px 0 var(--key-shadow);
+}
+.bc-action.is-primary {
+  background: var(--cheese);
+  box-shadow: 0 4px 0 var(--cheese-deep);
+}
+.bc-action:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--key-shadow);
+}
+.bc-cancel {
+  color: var(--paper);
+  min-height: 44px;
+}
+.bc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bc-question {
+  flex: 1;
+  margin: 0;
+  color: var(--paper);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.bc-x {
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+.bc-question .m {
+  color: var(--paper);
+}
+.bc-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.bc-option {
+  border: 0;
+  border-radius: 14px;
+  min-height: 84px;
+  padding: 8px 6px;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 4px 0 var(--key-shadow);
+}
+.bc-option:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--key-shadow);
+}
+.bc-option.is-wrong {
+  opacity: 0.4;
+  box-shadow: none;
+}
+.bc-option-label {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+.bc-done {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-sign);
+  font-size: 1.5rem;
+  color: var(--cheese);
+  padding: 10px 0;
+}
+.back-to-board {
+  display: block;
+  margin: 12px auto 0;
+  color: var(--wall);
+}
+
+/* devolución: los pasos del jugador */
+.fb-path {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.fb-path li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--paper-line);
+}
+.fb-path li:last-child {
+  border-bottom: 0;
+}
+.fb-path-label {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.fb-path-eq {
+  overflow-x: auto;
+}
+.fb-mistakes {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-height: 700px) {
+  .chip {
+    min-height: 52px;
+  }
+  .side {
+    min-height: 60px;
+  }
+  .bc-option {
+    min-height: 70px;
+  }
+}
+
+/* Encabezado de la comanda más compacto en la mesa de ecuaciones */
+.ticket.is-board {
+  padding-top: 12px;
+}
+.ticket.is-board .ticket-head {
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.ticket.is-board .ticket-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 1.25rem;
+}
+.ticket.is-board .ticket-title {
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+.ticket.is-board .ticket-story {
+  font-size: 0.95rem;
+}
+.fb-mistake-math {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.bc-question .m {
+  vertical-align: middle;
+}
+
+/* Teléfonos angostos: más lugar para la ecuación */
+@media (max-width: 360px) {
+  .play {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ticket.is-board {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .side {
+    padding: 2px;
+    gap: 3px;
+  }
+  .chip {
+    padding: 2px 4px;
+    min-width: 40px;
+  }
+  .chip .m-md {
+    font-size: 1.15rem;
+  }
+  .chip-sign {
+    font-size: 1.2rem;
+    margin-right: 2px;
+  }
+  .board-eqsign {
+    font-size: 1.6rem;
+  }
+}
+.bc-error-retry {
+  font-weight: 700;
 }

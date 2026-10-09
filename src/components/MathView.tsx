@@ -17,7 +17,7 @@ function Frac({ n, d }: { n: ReactNode; d: ReactNode }) {
   );
 }
 
-function Fence({ kind, children }: { kind: "(" | "["; children: ReactNode }) {
+export function Fence({ kind, children }: { kind: "(" | "["; children: ReactNode }) {
   const left = kind === "(" ? "M8 1 Q0 50 8 99" : "M9 1 H3 V99 H9";
   const right = kind === "(" ? "M2 1 Q10 50 2 99" : "M1 1 H7 V99 H1";
   return (
