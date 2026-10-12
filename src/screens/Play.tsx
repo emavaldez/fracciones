@@ -4,6 +4,8 @@ import { Pizzas, OnePizza, LifeIcon } from "../components/Pizza";
 import { TEXTS, findThemed, useLook, withLook } from "../look";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
 import { NumberLine } from "../components/NumberLine";
+import { BarModel } from "../components/BarModel";
+import { setGenLook } from "../game/theme";
 import { PizarraPath, PizarraStage, type PzSummary } from "../components/Pizarra";
 import { Steps } from "../components/Steps";
 import { check, draftFor, validate, type Draft, type Verdict } from "../game/check";
@@ -56,6 +58,18 @@ function CorrectAnswer({ q }: { q: Question }) {
       </span>
     );
   }
+  if (a.kind === "multi") {
+    return (
+      <span className="fb-answer-val fb-answer-multi">
+        {a.items.map((it, i) => (
+          <span key={i} className="fb-multi-item">
+            {it.label}: <b>{it.unit === "$" ? "$" : ""}{decStr(it.value)}</b>
+            {it.unit && it.unit !== "$" ? ` ${it.unit}` : ""}
+          </span>
+        ))}
+      </span>
+    );
+  }
   const e =
     a.kind === "integer"
       ? N(a.value)
@@ -82,7 +96,10 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const { good: GOOD, bad: BAD } = TEXTS[look];
 
   const [started, setStarted] = useState(!isBoss);
-  const [queue, setQueue] = useState<Question[]>(() => buildQueue(level, rng).map((x) => withLook(x, look)));
+  const [queue, setQueue] = useState<Question[]>(() => {
+    setGenLook(look);
+    return buildQueue(level, rng).map((x) => withLook(x, look));
+  });
   const [idx, setIdx] = useState(0);
   const [draft, setDraft] = useState<Draft>(() => draftFor(queue[0].answer));
   const [slot, setSlot] = useState<Slot>("num");
@@ -119,7 +136,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const resetInput = useCallback((next: Question) => {
     setDraft(draftFor(next.answer));
     setChoice(null);
-    setSlot(slotsFor(next.answer.kind)[0]);
+    setSlot(slotsFor(next.answer.kind, next.answer.kind === "multi" ? next.answer.items.length : 0)[0]);
     setWarn(null);
     setHint(false);
     setShowHow(false);
@@ -131,7 +148,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   }, []);
 
   useEffect(() => {
-    if (q) setSlot(slotsFor(q.answer.kind)[0]);
+    if (q) setSlot(slotsFor(q.answer.kind, q.answer.kind === "multi" ? q.answer.items.length : 0)[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -172,6 +189,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
       if (isBoss) setLives((l) => l - 1);
       else if (extra < MAX_EXTRA) {
         const avoid = new Set(newQueue.map(signature));
+        setGenLook(look);
         const sim = similar(level, q.gen, rng, avoid);
         if (sim) {
           newQueue = [...newQueue, withLook(sim, look)];
@@ -480,6 +498,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                     <span key={i}>
                       {h.text && <RichText text={h.text} />}
                       {h.math && <MathView e={h.math} size="sm" />}
+                      {h.line && <NumberLine spec={h.line} />}
+                      {h.bar && <BarModel spec={h.bar} />}
                     </span>
                   ))}
                   <span className="hint-cost"> (esta comanda da la mitad de propina)</span>
@@ -550,7 +570,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
                     })}
                 </div>
               ) : (
-                <AnswerDisplay kind={kind} draft={draft} slot={slot} setSlot={setSlot} prefix={q.answerPrefix} />
+                <AnswerDisplay kind={kind} draft={draft} slot={slot} setSlot={setSlot} prefix={q.answerPrefix} items={q.answer.kind === "multi" ? q.answer.items : undefined} />
               )}
               {warn && (
                 <p className="warn" role="alert">

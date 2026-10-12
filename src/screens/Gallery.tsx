@@ -47,7 +47,13 @@ function Q({ q }: { q: Question }) {
       )}
       <p>
         <b>Respuesta:</b>{" "}
-        {q.answer.kind === "choice" ? q.answer.correct : q.answer.kind === "sci" ? <RichText text={sciText(q.answer.m, q.answer.e)} /> : String(q.answer.value)} ({q.answer.kind})
+        {q.answer.kind === "choice" ? q.answer.correct : q.answer.kind === "sci" ? (
+          <RichText text={sciText(q.answer.m, q.answer.e)} />
+        ) : q.answer.kind === "multi" ? (
+          q.answer.items.map((it) => `${it.label}: ${it.value}`).join(" · ")
+        ) : (
+          String(q.answer.value)
+        )} ({q.answer.kind})
       </p>
       <Steps steps={q.steps} />
       {q.followUp && <Q q={q.followUp} />}

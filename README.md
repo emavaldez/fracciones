@@ -5,7 +5,7 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
 
 ## Qué tiene
 
-- **11 sectores, 44 niveles** (3 niveles + 1 jefe por sector). Todos abiertos desde el principio: se elige qué jugar.
+- **11 sectores, 46 niveles** (3 o 4 niveles + 1 jefe por sector). Todos abiertos desde el principio: se elige qué jugar.
   1. El Mostrador: leer fracciones, equivalentes, simplificar, comparar (también con negativos)
   2. La Mesa de Amasado: números mixtos, decimales finitos y periódicos
   3. El Riel de Comandas: fracciones en la recta numérica (ubicar, leer, negativos, mixtos, rayitas que no coinciden con el denominador, encontrar el 1)
@@ -15,8 +15,11 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   7. La Despensa: notación científica (escribir y leer números grandes y chicos, reconocer, comparar, multiplicar, dividir, potencias, problemas)
   8. La Huerta: raíces cuadradas, cúbicas, de decimales, propiedades y trampas
   9. La Cocina a Full: operaciones combinadas (términos, paréntesis, corchetes)
-  10. La Receta Secreta: ecuaciones (uno y dos pasos, x en los dos miembros, potencias y raíces)
-  11. El Delivery: problemas con enunciado, incluidos los de plantear la ecuación y resolverla
+  10. La Receta Secreta: ecuaciones (uno y dos pasos, x en los dos miembros, potencias y raíces) y el número pensado
+      ("el doble de un número, más 5, da 17": elegir la ecuación y despejarla; traducir frases y expresiones)
+  11. El Delivery: problemas con enunciado, incluidos los de plantear la ecuación y resolverla, y repartos por partes
+      (partes del total, partes "del resto" y una cantidad conocida: qué parte quedó, cuánto era el total y cuánto le
+      tocó a cada uno)
 - **Pizarra para resolver por partes** (cálculos combinados, ecuaciones y problemas): la cuenta se ve entera, como en la carpeta.
   El jugador marca un pedazo (arrastrando el dedo, o tocando dónde empieza y dónde termina) y elige qué hacer:
   resolverlo (escribe cuánto da), pasarlo al otro lado del `=` o aplicar la distributiva. Nadie le separa los términos:
@@ -32,6 +35,8 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   el juego pasa a ser la Chocolatería La Fracción, con otros colores, otros nombres de sectores y jefes (El Baño María,
   La Fábrica de Bombones, La Plantación de Cacao…), tabletas divididas en porciones en vez de pizzas, consignas y
   enunciados de chocolatería, y chocolates como puntaje y como vidas.
+- **Repartos por partes, de a pasos**: primero qué parte del total quedó, después cuánto era el total y al final cuánto
+  le tocó a cada uno, con un casillero por persona. La explicación los dibuja con un modelo de barras.
 - **Ejercicios generados al azar**: cada partida es distinta.
 - **Explicación de errores**: si la respuesta coincide con un error típico (sumar denominadores, multiplicar en vez de dividir, elevar solo el numerador, olvidarse del signo, etc.), el juego dice exactamente qué pasó. Siempre muestra la resolución paso a paso y la regla para recordar.
 - **Revancha**: si se erra una comanda, más adelante aparece otra parecida.
@@ -51,6 +56,7 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
 | `^` | En notación científica, pasar al exponente (el `-` le cambia el signo) |
 | `←` `→` | En la recta, mover la banderita de a una rayita |
 | `+` `-` | En la recta, cuando hay que elegir las divisiones: más o menos partes |
+| `Tab`, `↓` | En las respuestas con varios casilleros, pasar al siguiente |
 | `Enter` | Servir / siguiente comanda |
 | `1`–`4` | Elegir opción en las preguntas de opción múltiple |
 
@@ -90,15 +96,16 @@ React + TypeScript + Vite, sin backend.
 src/
   math/        fracciones exactas, árbol de expresiones para dibujar la matemática, azar con semilla
   game/
-    gen/       generadores de ejercicios: w1.ts … w9.ts (sectores originales), recta.ts (recta numérica)
-               y cientifica.ts (notación científica)
+    gen/       generadores de ejercicios: w1.ts … w9.ts (sectores originales), recta.ts (recta numérica),
+               cientifica.ts (notación científica), pensado.ts (número pensado) y repartos.ts (repartos por partes)
+    theme.ts   con qué se ambientan los ejercicios (pizzería o chocolatería)
     worlds.ts  sectores, niveles y jefes
     recipes.ts la teoría de cada sector
     check.ts   corrección de respuestas y diagnóstico de errores
     pizarra.ts la pizarra: la cuenta como árbol, qué pedazos se pueden resolver solos, pasar al otro lado, pistas
   math/sci.ts  notación científica exacta (normalizar, comparar, decimales con miles separados)
   look.tsx     pizzería o chocolatería: textos, nombres de sectores y jefes, y cómo se reescriben las consignas
-  components/  dibujo de fracciones/potencias/raíces, pizzas y tabletas, recta numérica, teclado
+  components/  dibujo de fracciones/potencias/raíces, pizzas y tabletas, recta numérica, modelo de barras, teclado
   screens/     portada, mapa, partida, resultados
 tests/         pruebas de los generadores
 ```

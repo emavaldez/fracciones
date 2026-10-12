@@ -9,6 +9,27 @@ export interface Step {
   math?: Expr;
   /** Una recta numérica para acompañar la explicación. */
   line?: LineSpec;
+  /** Un dibujo de barras con las partes de un total. */
+  bar?: BarSpec;
+}
+
+/** Barra dividida en partes (modelo de barras para repartos). */
+export interface BarSpec {
+  /** Qué representa la barra entera, arriba ("La tableta: 3000 g"). */
+  title?: string;
+  /** Partes de izquierda a derecha; los tamaños suman 1. */
+  segs: { size: Fraction; label: string; note?: string; tone?: number; muted?: boolean }[];
+  /** Llave arriba de algunas partes, por ejemplo para marcar "el resto". */
+  brace?: { from: number; to: number; label: string };
+}
+
+/** Un casillero de una respuesta con varios números ("Jorge: ___ g"). */
+export interface MultiItem {
+  label: string;
+  value: Fraction;
+  unit?: string;
+  /** Errores típicos de este casillero. */
+  traps?: Trap[];
 }
 
 /** Un punto marcado en la recta. */
@@ -59,7 +80,9 @@ export type AnswerSpec =
   /** Ubicar un punto en la recta. Con `pickParts`, el jugador elige en cuántas partes dividir cada entero. */
   | { kind: "point"; value: Fraction; line: LineSpec; pickParts?: boolean }
   /** Notación científica: m · 10^e con 1 ≤ m < 10. */
-  | { kind: "sci"; m: Fraction; e: number };
+  | { kind: "sci"; m: Fraction; e: number }
+  /** Varios números a la vez, cada uno con su nombre. */
+  | { kind: "multi"; items: MultiItem[] };
 
 /** Error típico: si la respuesta del jugador vale `value`, se muestra `msg`. */
 export interface Trap {

@@ -10,6 +10,8 @@ import * as w8 from "./gen/w8";
 import * as w9 from "./gen/w9";
 import * as rc from "./gen/recta";
 import * as nc from "./gen/cientifica";
+import * as np from "./gen/pensado";
+import * as rp from "./gen/repartos";
 
 // Los ids de los niveles ("3-2", "7-J") salen de la posición del sector y del nivel (ver más abajo).
 const lv = (name: string, about: string, gens: GenEntry[], count = 8): Level => ({ id: "", name, about, gens, count });
@@ -208,11 +210,13 @@ export const WORLDS: World[] = [
       lv("Un paso", "Pasar al otro lado", [w8.ecuacionUnPaso]),
       lv("Dos pasos", "Despejar de afuera hacia adentro", [w8.ecuacionDosPasos]),
       lv("x de los dos lados", "Y con potencias y raíces", [w8.ecuacionDosMiembros, w8.ecuacionPotRaiz]),
+      lv("El número pensado", "“El doble de un número, más 5…”: de la frase a la ecuación", [np.numeroPensado, np.traducirFrase, np.numeroPensado], 6),
       boss("El Guardián de la Receta", "🧙", "La receta de la muzza perfecta está bajo llave. La llave es x.", [
         w8.ecuacionUnPaso,
         w8.ecuacionDosPasos,
         w8.ecuacionDosMiembros,
         w8.ecuacionPotRaiz,
+        np.numeroPensado,
       ]),
     ],
   },
@@ -223,8 +227,9 @@ export const WORLDS: World[] = [
     emoji: "🛵",
     levels: [
       lv("Problemas de cuentas", "Leer, pensar y calcular", [w9.problemaCalculo]),
-      lv("Plantear ecuaciones", "Traducir el enunciado y resolver", [w9.problemaEcuacion, w9.problemaEdades], 5),
-      lv("Problemas desafiantes", "Varios pasos, y también con números gigantes", [w9.problemaDelResto, w9.problemaCalculo, w9.problemaEcuacion, nc.ncProblema], 8),
+      lv("Plantear ecuaciones", "Traducir el enunciado y resolver", [w9.problemaEcuacion, w9.problemaEdades, np.numeroPensado], 5),
+      lv("Repartos por partes", "Partes del total, partes del resto y cuánto le tocó a cada uno", [rp.repartoDirecto, rp.repartoInverso], 5),
+      lv("Problemas desafiantes", "Varios pasos, y también con números gigantes", [w9.problemaDelResto, w9.problemaCalculo, w9.problemaEcuacion, nc.ncProblema, rp.repartoInverso], 8),
       boss("El Gran Crítico",
         "🧐",
         "Probé todas las pizzerías del barrio. Si me convencés, te doy cinco estrellas.",
@@ -241,6 +246,8 @@ export const WORLDS: World[] = [
           w8.ecuacionDosPasos,
           w9.problemaCalculo,
           w9.problemaDelResto,
+          rp.repartoInverso,
+          np.numeroPensado,
         ],
         12,
       ),

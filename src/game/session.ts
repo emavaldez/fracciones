@@ -3,7 +3,7 @@ import type { GenEntry, Level, Question } from "./types";
 
 export function signature(q: Question): string {
   const a = q.answer;
-  const val = a.kind === "choice" ? `c${a.correct}:${a.options.length}` : a.kind === "sci" ? `${a.m}e${a.e}` : String(a.value);
+  const val = a.kind === "choice" ? `c${a.correct}:${a.options.length}` : a.kind === "sci" ? `${a.m}e${a.e}` : a.kind === "multi" ? a.items.map((it) => `${it.label}=${it.value}`).join(";") : String(a.value);
   return JSON.stringify([q.title, q.story ?? "", q.math ?? null, q.pizzas ?? null, q.line ?? null, val]);
 }
 

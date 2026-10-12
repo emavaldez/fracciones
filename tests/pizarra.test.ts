@@ -25,6 +25,7 @@ import {
 import * as w7 from "../src/game/gen/w7";
 import * as w8 from "../src/game/gen/w8";
 import * as w9 from "../src/game/gen/w9";
+import * as np from "../src/game/gen/pensado";
 import type { GenEntry, Question } from "../src/game/types";
 import { findFalseEqualities } from "./evaluate";
 
@@ -40,6 +41,7 @@ const GENS: GenEntry[] = [
   w8.ecuacionPotRaiz,
   w9.problemaEcuacion,
   w9.problemaEdades,
+  np.numeroPensado,
 ];
 
 const pzQ = (q: Question) => (q.pizarra ? q : q.followUp!);

@@ -6,7 +6,7 @@ import { check, emptyDraft, type Draft } from "../src/game/check";
 import { WORLDS } from "../src/game/worlds";
 import { RECIPES } from "../src/game/recipes";
 import { buildQueue } from "../src/game/session";
-import type { GenEntry, LineSpec, Question } from "../src/game/types";
+import type { BarSpec, GenEntry, LineSpec, Question } from "../src/game/types";
 import { decStr, isSciMantissa, sameSci } from "../src/math/sci";
 import { containsValue, findFalseEqualities } from "./evaluate";
 
@@ -36,7 +36,20 @@ function correctDraft(q: Question): { draft: Draft; choice: number | null } {
       return { draft: { ...d, pt: a.value, parts: a.pickParts ? a.value.d : a.line.parts }, choice: null };
     case "sci":
       return { draft: { ...d, text: decStr(a.m, false), exp: String(Math.abs(a.e)), expNeg: a.e < 0 }, choice: null };
+    case "multi":
+      return { draft: { ...d, multi: a.items.map((it) => decStr(it.value, false)) }, choice: null };
   }
+}
+
+/** El dibujo de barras se puede dibujar: partes positivas que suman el total. */
+function checkBar(b: BarSpec, ctx: string) {
+  let sum = F(0);
+  for (const s of b.segs) {
+    expect(s.size.n > 0, `${ctx}\nparte vacía en la barra`).toBe(true);
+    sum = sum.add(s.size);
+  }
+  expect(sum.equals(F(1)), `${ctx}\nla barra no suma 1 (${sum})`).toBe(true);
+  if (b.brace) expect(b.brace.from <= b.brace.to && b.brace.to < b.segs.length, ctx).toBe(true);
 }
 
 const LINE_W = 360 - 2 * 26;
@@ -76,6 +89,8 @@ function allText(q: Question): string {
   for (const s of [...q.steps, ...q.hint]) parts.push(s.text ?? "", s.math ? toText(s.math) : "");
   for (const t of q.traps ?? []) parts.push(t.msg);
   if (q.answer.kind === "choice") for (const o of q.answer.options) parts.push(o.label ?? "", o.why ?? "", o.math ? toText(o.math) : "");
+  if (q.answer.kind === "multi") for (const it of q.answer.items) parts.push(it.label, it.unit ?? "", ...(it.traps ?? []).map((t) => t.msg));
+  for (const s of [...q.steps, ...q.hint]) if (s.bar) parts.push(s.bar.title ?? "", ...s.bar.segs.flatMap((g) => [g.label, g.note ?? ""]), s.bar.brace?.label ?? "");
   return parts.join(" | ");
 }
 
@@ -106,6 +121,17 @@ function validateQuestion(q: Question, where: string) {
   }
   if (q.line) checkLine(q.line, ctx);
   for (const s of [...q.steps, ...q.hint]) if (s.line) checkLine(s.line, ctx);
+  for (const s of [...q.steps, ...q.hint]) if (s.bar) checkBar(s.bar, ctx);
+  if (a.kind === "multi") {
+    expect(a.items.length, ctx).toBeGreaterThan(0);
+    for (const it of a.items) {
+      expect(fractionToDecimalString(it.value), `${ctx}\n${it.label} no es un número que se pueda escribir`).not.toBeNull();
+      for (const t of it.traps ?? []) {
+        const tv = typeof t.value === "number" ? F(t.value) : t.value;
+        expect(tv.equals(it.value), `${ctx}\ntrampa igual a la respuesta en ${it.label}`).toBe(false);
+      }
+    }
+  }
   if (a.kind === "point") {
     checkLine(a.line, ctx, true);
     const l = a.line;
@@ -130,7 +156,7 @@ function validateQuestion(q: Question, where: string) {
     expect(new Set(shown).size, `${ctx}\nopciones repetidas`).toBe(shown.length);
   }
   // Las trampas nunca coinciden con la respuesta correcta
-  if (a.kind !== "choice" && a.kind !== "sci") {
+  if (a.kind !== "choice" && a.kind !== "sci" && a.kind !== "multi") {
     const correct = a.kind === "integer" ? F(a.value) : a.value;
     for (const t of q.traps ?? []) {
       const tv = typeof t.value === "number" ? F(t.value) : t.value;
@@ -255,11 +281,15 @@ describe("pizzas o chocolates", () => {
     const { withLook, chocoText } = await import("../src/look");
     expect(chocoText("¿Qué fracción de la pizza queda?")).toBe("¿Qué fracción de la tableta queda?");
     expect(chocoText("Todas las pizzas se cortaron en 8 porciones. La pizzería abrió.")).toBe("Todas las tabletas se dividieron en 8 porciones. La chocolatería abrió.");
+    const { setGenLook } = await import("../src/game/theme");
     for (const [id, g] of allGens) {
       for (let i = 0; i < 120; i++) {
-        const q = withLook(g.make(makeRng(3 + i)), "choco");
+        setGenLook("choco");
+        const raw = g.make(makeRng(3 + i));
+        setGenLook("pizza");
+        const q = withLook(raw, "choco");
         const parts = [allText(q), ...(q.sciTraps ?? []).map((t) => t.msg)];
-        if (q.followUp) parts.push(allText(q.followUp));
+        for (let f = q.followUp; f; f = f.followUp) parts.push(allText(f));
         const txt = parts.join(" | ");
         expect(txt, `${id}: ${txt}`).not.toMatch(PIZZA_WORDS);
         validateQuestion(q, `${id} (chocolates)`);

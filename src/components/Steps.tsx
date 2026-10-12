@@ -1,5 +1,6 @@
 import { MathView, RichText } from "./MathView";
 import { NumberLine } from "./NumberLine";
+import { BarModel } from "./BarModel";
 import type { Step } from "../game/types";
 
 export function Steps({ steps }: { steps: Step[] }) {
@@ -20,6 +21,11 @@ export function Steps({ steps }: { steps: Step[] }) {
           {s.line && (
             <div className="steps-line">
               <NumberLine spec={s.line} />
+            </div>
+          )}
+          {s.bar && (
+            <div className="steps-bar">
+              <BarModel spec={s.bar} />
             </div>
           )}
         </li>

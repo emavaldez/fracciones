@@ -1,10 +1,12 @@
 import type { Draft } from "../game/check";
-import type { AnswerSpec } from "../game/types";
+import type { AnswerSpec, MultiItem } from "../game/types";
 import { groupThousands } from "../math/sci";
 
-export type Slot = "whole" | "num" | "den" | "text" | "exp";
+export type Slot = "whole" | "num" | "den" | "text" | "exp" | `m${number}`;
 
-export function slotsFor(kind: AnswerSpec["kind"]): Slot[] {
+/** Casilleros de cada tipo de respuesta (`n`: cuántos hay en una respuesta con varios números). */
+export function slotsFor(kind: AnswerSpec["kind"], n = 0): Slot[] {
+  if (kind === "multi") return Array.from({ length: n }, (_, i) => `m${i}` as Slot);
   if (kind === "fraction") return ["num", "den"];
   if (kind === "mixed") return ["whole", "num", "den"];
   if (kind === "sci") return ["text", "exp"];
@@ -16,11 +18,36 @@ function maxDigits(kind: AnswerSpec["kind"], slot: Slot) {
   if (slot === "exp") return 2;
   if (kind === "sci") return 4;
   if (kind === "decimal") return 10;
+  if (kind === "multi" || kind === "integer") return 7;
   return 5;
+}
+
+const multiIndex = (slot: Slot) => (slot.startsWith("m") ? Number(slot.slice(1)) : -1);
+
+function applyMultiKey(d: Draft, slot: Slot, key: string): { draft: Draft; slot: Slot } {
+  const slots = slotsFor("multi", d.multi.length);
+  const i = Math.max(0, multiIndex(slot));
+  const cur = d.multi[i] ?? "";
+  const set = (v: string) => ({ ...d, multi: d.multi.map((x, k) => (k === i ? v : x)) });
+  if (key === "next") return { draft: d, slot: slots[(i + 1) % slots.length] };
+  if (key === "prev") return { draft: d, slot: slots[(i - 1 + slots.length) % slots.length] };
+  if (key === "⌫") {
+    if (cur === "" && i > 0) return { draft: d, slot: slots[i - 1] };
+    return { draft: set(cur.slice(0, -1)), slot };
+  }
+  if (key === ",") return cur.includes(",") ? { draft: d, slot } : { draft: set((cur === "" ? "0" : cur) + ","), slot };
+  if (/^\d$/.test(key)) {
+    if (cur.replace(",", "").length >= maxDigits("multi", slot)) return { draft: d, slot };
+    return { draft: set(cur === "0" ? key : cur + key), slot };
+  }
+  return { draft: d, slot };
 }
 
 /** Aplica una tecla al borrador. Devuelve el nuevo borrador y el casillero activo. */
 export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: string): { draft: Draft; slot: Slot } {
+  if (kind === "multi") return applyMultiKey(d, slot, key);
+  if (slot.startsWith("m")) return { draft: d, slot };
+  const s = slot as "whole" | "num" | "den" | "text" | "exp";
   const slots = slotsFor(kind);
   // En notación científica el signo es del exponente (el primer número siempre es positivo acá).
   if (key === "±" && kind === "sci") return { draft: { ...d, expNeg: !d.expNeg }, slot: "exp" };
@@ -34,13 +61,13 @@ export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: st
     return { draft: d, slot: slots[(i - 1 + slots.length) % slots.length] };
   }
   if (key === "⌫") {
-    const cur = d[slot];
+    const cur = d[s];
     if (slot === "exp" && cur === "" && d.expNeg) return { draft: { ...d, expNeg: false }, slot };
     if (cur === "" && slots.length > 1) {
       const i = slots.indexOf(slot);
       if (i > 0) return { draft: d, slot: slots[i - 1] };
     }
-    return { draft: { ...d, [slot]: cur.slice(0, -1) }, slot };
+    return { draft: { ...d, [s]: cur.slice(0, -1) }, slot };
   }
   if (key === ",") {
     if (kind !== "decimal" && kind !== "sci") return { draft: d, slot };
@@ -48,11 +75,11 @@ export function applyKey(kind: AnswerSpec["kind"], d: Draft, slot: Slot, key: st
     return { draft: { ...d, text: (d.text === "" ? "0" : d.text) + "," }, slot: "text" };
   }
   if (/^\d$/.test(key)) {
-    const cur = d[slot];
+    const cur = d[s];
     const digits = cur.replace(",", "").length;
     if (digits >= maxDigits(kind, slot)) return { draft: d, slot };
     const next = cur === "0" ? key : cur + key;
-    return { draft: { ...d, [slot]: next }, slot };
+    return { draft: { ...d, [s]: next }, slot };
   }
   return { draft: d, slot };
 }
@@ -77,13 +104,32 @@ export function AnswerDisplay({
   slot,
   setSlot,
   prefix,
+  items,
 }: {
   kind: AnswerSpec["kind"];
   draft: Draft;
   slot: Slot;
   setSlot: (s: Slot) => void;
   prefix?: string;
+  /** Nombres de los casilleros, en las respuestas con varios números. */
+  items?: MultiItem[];
 }) {
+  if (kind === "multi" && items) {
+    return (
+      <div className="ans ans-multi" aria-live="polite">
+        {items.map((it, i) => (
+          <div key={i} className="ans-row">
+            <span className="ans-row-label">{it.label}</span>
+            <span className="ans-row-slot">
+              {it.unit === "$" && <span className="ans-row-unit">$</span>}
+              <SlotBox value={groupThousands(draft.multi[i] ?? "")} active={slot === `m${i}`} label={it.label} onClick={() => setSlot(`m${i}`)} className="slot-multi" />
+            </span>
+            <span className="ans-row-unit">{it.unit && it.unit !== "$" ? it.unit : ""}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const sign = draft.neg ? <span className="ans-sign">−</span> : null;
   return (
     <div className="ans" aria-live="polite">
@@ -180,6 +226,26 @@ export function Keypad({
       </svg>
     </button>
   );
+  if (kind === "multi") {
+    // [siguiente casillero] [coma] [borrar] [servir]
+    return (
+      <div className="keypad" role="group" aria-label="Teclado">
+        {digitKeys}
+        <button type="button" className="key key-fn" onClick={() => onKey("next")} disabled={disabled} aria-label="Siguiente casillero" title="Siguiente casillero">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path d="M12 4v15M6 13l6 6 6-6" className="ico-line" />
+          </svg>
+        </button>
+        <button type="button" className="key key-fn" onClick={() => onKey(",")} disabled={disabled} aria-label="Coma decimal">
+          ,
+        </button>
+        {back}
+        <button type="button" className="key key-go" onClick={onSubmit} disabled={disabled}>
+          {submitLabel}
+        </button>
+      </div>
+    );
+  }
   if (kind === "sci") {
     // [ir al otro casillero] [coma o signo del exponente] [borrar] [servir]
     const onExp = slot === "exp";

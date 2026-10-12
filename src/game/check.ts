@@ -17,14 +17,17 @@ export interface Draft {
   /** Recta: dónde quedó la banderita y en cuántas partes está dividido cada entero. */
   pt: Fraction | null;
   parts: number;
+  /** Respuestas con varios casilleros. */
+  multi: string[];
 }
 
-export const emptyDraft = (): Draft => ({ neg: false, whole: "", num: "", den: "", text: "", exp: "", expNeg: false, pt: null, parts: 1 });
+export const emptyDraft = (): Draft => ({ neg: false, whole: "", num: "", den: "", text: "", exp: "", expNeg: false, pt: null, parts: 1, multi: [] });
 
 /** Borrador vacío preparado para una consigna (la recta arranca con sus divisiones). */
 export function draftFor(spec: AnswerSpec): Draft {
   const d = emptyDraft();
   if (spec.kind === "point") d.parts = spec.pickParts ? 1 : spec.line.parts;
+  if (spec.kind === "multi") d.multi = spec.items.map(() => "");
   return d;
 }
 
@@ -65,6 +68,13 @@ export function validate(spec: AnswerSpec, d: Draft, choice: number | null): str
       if (!decimalStringToFraction(d.text) || decimalStringToFraction(d.text)!.isZero()) return "El primer número no se entiende. Revisá la coma.";
       if (d.exp === "") return "Falta el exponente del 10 (tocá el casillero chiquito de arriba).";
       return null;
+    case "multi": {
+      const empty = spec.items.findIndex((_, i) => (d.multi[i] ?? "") === "");
+      if (empty >= 0) return `Falta completar: ${spec.items[empty].label}.`;
+      const bad = spec.items.findIndex((_, i) => !decimalStringToFraction(d.multi[i]));
+      if (bad >= 0) return `No se entiende el número de ${spec.items[bad].label}. Revisá la coma.`;
+      return null;
+    }
   }
 }
 
@@ -103,6 +113,8 @@ export function draftText(spec: AnswerSpec, d: Draft): string {
       return d.pt ? `la banderita en ${ft(d.pt)}` : "";
     case "sci":
       return `${d.text}·10^${d.expNeg ? "-" : ""}${d.exp}`;
+    case "multi":
+      return spec.items.map((it, i) => `${it.label}: ${it.unit === "$" ? "$" : ""}${d.multi[i] ?? ""}${it.unit && it.unit !== "$" ? ` ${it.unit}` : ""}`).join(", ");
     default:
       return "";
   }
@@ -127,6 +139,7 @@ export function check(q: Question, d: Draft, choice: number | null): Verdict {
   }
   if (spec.kind === "point") return checkPoint(q, spec, d);
   if (spec.kind === "sci") return checkSci(q, spec, d);
+  if (spec.kind === "multi") return checkMulti(spec, d);
   const v = draftValue(spec, d);
   const given = draftText(spec, d);
   if (v === null) return { correct: false, diagnosis: null, given };
@@ -255,4 +268,21 @@ function checkSci(q: Question, spec: SciSpec, d: Draft): Verdict {
     };
   }
   return { correct: false, diagnosis: extra ? extra.trim() : null, given };
+}
+
+type MultiSpec = Extract<AnswerSpec, { kind: "multi" }>;
+
+function checkMulti(spec: MultiSpec, d: Draft): Verdict {
+  const given = draftText(spec, d);
+  const vals = spec.items.map((_, i) => decimalStringToFraction(d.multi[i] ?? ""));
+  const wrong = spec.items.map((it, i) => ({ it, v: vals[i] })).filter(({ it, v }) => !v || !v.equals(it.value));
+  if (!wrong.length) return { correct: true, diagnosis: null, given };
+  const okNames = spec.items.filter((it) => !wrong.some((w) => w.it === it)).map((it) => it.label);
+  const parts: string[] = [];
+  if (okNames.length) parts.push(`${okNames.length === 1 ? `${okNames[0]} está bien` : `${okNames.slice(0, -1).join(", ")} y ${okNames[okNames.length - 1]} están bien`}.`);
+  for (const { it, v } of wrong) {
+    const trap = v ? it.traps?.find((t) => (typeof t.value === "number" ? F(t.value) : t.value).equals(v)) : undefined;
+    parts.push(`${it.label}: ${trap ? trap.msg : "no da eso. Mirá la explicación de abajo."}`);
+  }
+  return { correct: false, diagnosis: parts.join(" "), given };
 }

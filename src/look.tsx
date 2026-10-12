@@ -2,10 +2,11 @@
 // Cambia los dibujos de fracciones, los íconos de puntaje y de vidas, y las palabras de las
 // consignas que hablan de esos dibujos ("pizza" → "tableta").
 import { createContext, useContext } from "react";
-import type { Question, World } from "./game/types";
+import type { BarSpec, Question, World } from "./game/types";
 import { WORLDS, findLevel } from "./game/worlds";
 
-export type Look = "pizza" | "choco";
+import type { Look } from "./game/theme";
+export type { Look };
 
 export const LookContext = createContext<Look>("pizza");
 export const useLook = () => useContext(LookContext);
@@ -100,6 +101,14 @@ export function chocoText(s: string): string {
   return out;
 }
 
+const barText = (b: BarSpec | undefined): BarSpec | undefined =>
+  b && {
+    ...b,
+    title: b.title === undefined ? undefined : chocoText(b.title),
+    segs: b.segs.map((g) => ({ ...g, label: chocoText(g.label), note: g.note === undefined ? undefined : chocoText(g.note) })),
+    brace: b.brace && { ...b.brace, label: chocoText(b.brace.label) },
+  };
+
 /** Con chocolates, todas las consignas pasan a la chocolatería. */
 export function withLook(q: Question, look: Look): Question {
   if (look !== "choco") return q;
@@ -111,11 +120,16 @@ export function withLook(q: Question, look: Look): Question {
     story: t(q.story),
     rule: t(q.rule),
     answerPrefix: t(q.answerPrefix),
-    hint: q.hint.map((h) => ({ ...h, text: t(h.text) })),
-    steps: q.steps.map((h) => ({ ...h, text: t(h.text) })),
+    hint: q.hint.map((h) => ({ ...h, text: t(h.text), bar: barText(h.bar) })),
+    steps: q.steps.map((h) => ({ ...h, text: t(h.text), bar: barText(h.bar) })),
     traps: q.traps?.map((x) => ({ ...x, msg: chocoText(x.msg) })),
     sciTraps: q.sciTraps?.map((x) => ({ ...x, msg: chocoText(x.msg) })),
-    answer: a.kind === "choice" ? { ...a, options: a.options.map((o) => ({ ...o, label: t(o.label), why: t(o.why) })) } : a,
+    answer:
+      a.kind === "choice"
+        ? { ...a, options: a.options.map((o) => ({ ...o, label: t(o.label), why: t(o.why) })) }
+        : a.kind === "multi"
+          ? { ...a, items: a.items.map((it) => ({ ...it, label: chocoText(it.label), unit: t(it.unit), traps: it.traps?.map((x) => ({ ...x, msg: chocoText(x.msg) })) })) }
+          : a,
     followUp: q.followUp ? withLook(q.followUp, look) : undefined,
   };
 }
@@ -175,29 +189,26 @@ export const useTexts = () => TEXTS[useLook()];
 
 // ---------------------------------------------------------------- sectores
 
-type LevelPatch = { name?: string; about?: string; boss?: { name?: string; emoji?: string; line?: string } };
-type WorldPatch = { place?: string; topic?: string; emoji?: string; levels?: Record<number, LevelPatch> };
+type BossPatch = { name?: string; emoji?: string; line?: string };
+type WorldPatch = { place?: string; topic?: string; emoji?: string; levels?: Record<number, { name?: string; about?: string }>; boss?: BossPatch };
 
 /** Cómo se llaman los sectores (y sus jefes) en la chocolatería. */
 const CHOCO_WORLDS: Record<string, WorldPatch> = {
   mostrador: {
     emoji: "🍫",
-    levels: { 0: { about: "¿Qué fracción de chocolate hay?" }, 3: { boss: { line: "Yo pedí media tableta y me trajeron dos cuartos. ¿Me están cargando?" } } },
+    levels: { 0: { about: "¿Qué fracción de chocolate hay?" } },
+    boss: { line: "Yo pedí media tableta y me trajeron dos cuartos. ¿Me están cargando?" },
   },
   amasado: { place: "La Mesa de Templado", emoji: "🥣" },
   recta: { place: "El Riel de Pedidos" },
-  horno: {
-    place: "El Baño María",
-    emoji: "♨️",
-    levels: { 3: { boss: { name: "El Inspector del Baño María", line: "Un chocolate mal sumado es un chocolate quemado." } } },
-  },
-  tabla: { levels: { 3: { boss: { line: "Corto la tableta en partes iguales. Vos decime cuánto da." } } } },
-  fermentacion: { place: "La Fábrica de Bombones", emoji: "🍬", levels: { 3: { boss: { name: "El Bombón Gigante" } } } },
-  despensa: { levels: { 3: { boss: { line: "Cuento granos de azúcar: millones. Y cada uno pesa casi nada. ¿Me ayudás?" } } } },
-  huerta: { place: "La Plantación de Cacao", emoji: "🌳", levels: { 3: { boss: { name: "El Cacaotero Rebelde", emoji: "🌰" } } } },
+  horno: { place: "El Baño María", emoji: "♨️", boss: { name: "El Inspector del Baño María", line: "Un chocolate mal sumado es un chocolate quemado." } },
+  tabla: { boss: { line: "Corto la tableta en partes iguales. Vos decime cuánto da." } },
+  fermentacion: { place: "La Fábrica de Bombones", emoji: "🍬", boss: { name: "El Bombón Gigante" } },
+  despensa: { boss: { line: "Cuento granos de azúcar: millones. Y cada uno pesa casi nada. ¿Me ayudás?" } },
+  huerta: { place: "La Plantación de Cacao", emoji: "🌳", boss: { name: "El Cacaotero Rebelde", emoji: "🌰" } },
   cocina: { emoji: "🧑‍🍳" },
-  receta: { levels: { 3: { boss: { line: "La receta del chocolate perfecto está bajo llave. La llave es x." } } } },
-  delivery: { levels: { 3: { boss: { line: "Probé todas las chocolaterías del barrio. Si me convencés, te doy cinco estrellas." } } } },
+  receta: { boss: { line: "La receta del chocolate perfecto está bajo llave. La llave es x." } },
+  delivery: { boss: { line: "Probé todas las chocolaterías del barrio. Si me convencés, te doy cinco estrellas." } },
 };
 
 export function themeWorld(w: World, look: Look): World {
@@ -210,8 +221,9 @@ export function themeWorld(w: World, look: Look): World {
     emoji: p.emoji ?? w.emoji,
     levels: w.levels.map((l, i) => {
       const lp = p.levels?.[i];
-      if (!lp) return l;
-      return { ...l, name: lp.name ?? lp.boss?.name ?? l.name, about: lp.about ?? l.about, boss: l.boss && lp.boss ? { ...l.boss, ...lp.boss } : l.boss };
+      const bp = l.boss ? p.boss : undefined;
+      if (!lp && !bp) return l;
+      return { ...l, name: lp?.name ?? bp?.name ?? l.name, about: lp?.about ?? l.about, boss: l.boss && bp ? { ...l.boss, ...bp } : l.boss };
     }),
   };
 }

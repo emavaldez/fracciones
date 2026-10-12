@@ -23,13 +23,16 @@ function dumpQ(q: Question, indent = "") {
     a.options.forEach((o, i) => out.push(`${indent}  opción ${i + 1}${i === a.correct ? " (CORRECTA)" : ""}: ${o.label ?? ""}${o.math ? toText(o.math) : ""}${o.pizza ? ` pizza ${o.pizza.filled}/${o.pizza.slices}` : ""}${o.why ? `  → si la eligen: ${o.why}` : ""}`));
   } else if (a.kind === "sci") {
     out.push(`${indent}RESPUESTA (notación científica): ${sciText(a.m, a.e)}`);
+  } else if (a.kind === "multi") {
+    out.push(`${indent}RESPUESTA (varios casilleros): ${a.items.map((it) => `${it.label} = ${it.value}${it.unit ? " " + it.unit : ""}`).join(" | ")}`);
+    for (const it of a.items) for (const t of it.traps ?? []) out.push(`${indent}  error típico en ${it.label} si pone ${String(t.value)}: ${t.msg}`);
   } else if (a.kind === "point") {
     out.push(`${indent}RESPUESTA (ubicar en la ${lineText(a.line)}${a.pickParts ? "; elige las partes" : ""}): ${String(a.value)}`);
   } else {
     out.push(`${indent}RESPUESTA (${a.kind}${a.kind === "fraction" && a.mustSimplify ? ", hay que simplificar" : ""}): ${q.answerPrefix ?? ""} ${String(a.value)}`);
   }
   out.push(`${indent}PISTA: ${q.hint.map((h) => (h.text ?? "") + (h.math ? " " + toText(h.math) : "")).join(" | ")}`);
-  q.steps.forEach((s, i) => out.push(`${indent}  paso ${i + 1}: ${s.text ?? ""}${s.math ? "   [" + toText(s.math) + "]" : ""}${s.line ? "   {" + lineText(s.line) + "}" : ""}`));
+  q.steps.forEach((s, i) => out.push(`${indent}  paso ${i + 1}: ${s.text ?? ""}${s.math ? "   [" + toText(s.math) + "]" : ""}${s.line ? "   {" + lineText(s.line) + "}" : ""}${s.bar ? "   <barra: " + (s.bar.title ?? "") + " " + s.bar.segs.map((g) => `${g.label}${g.note ? "=" + g.note : ""}(${g.size})`).join(" + ") + (s.bar.brace ? ` ; llave ${s.bar.brace.label}` : "") + ">" : ""}`));
   for (const t of q.traps ?? []) out.push(`${indent}  error típico si responde ${String(t.value)}: ${t.msg}`);
   for (const t of q.sciTraps ?? []) out.push(`${indent}  error típico si responde ${t.m}·10^${t.e}: ${t.msg}`);
   if (q.rule) out.push(`${indent}PARA RECORDAR: ${q.rule}`);
