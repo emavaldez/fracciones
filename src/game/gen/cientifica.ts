@@ -700,3 +700,104 @@ export const ncProblema = gen("nc-problema", (r) =>
     } satisfies Question;
   }),
 );
+
+// ---------------------------------------------------------------- fracciones con notación científica
+
+const ONE_F = F(1);
+
+/** (a·10^p · b·10^q) / (c·10^s): la raya de fracción es una división. */
+export const ncCociente = gen("nc-cociente", (r) =>
+  retry(() => {
+    const two = r.chance(0.6);
+    const a = parseF(r.pick(["2", "3", "4", "5", "6", "8", "1,5", "2,5", "1,2"]));
+    const b = two ? parseF(r.pick(["2", "3", "4", "5", "6", "8", "1,5"])) : ONE_F;
+    const c = parseF(r.pick(["2", "3", "4", "5", "6", "8", "1,2", "2,5"]));
+    const top = a.mul(b);
+    const m = top.div(c);
+    if (m.equals(ONE_F) || fractionToDecimalString(m) === null || decimalPlaces(m) > 3) return null;
+    const p = r.int(-6, 8);
+    const q = two ? r.int(-6, 8) : 0;
+    const s = r.int(-6, 8);
+    if (p === 0 || s === 0 || (two && q === 0)) return null;
+    const topE = p + q;
+    const rawE = topE - s;
+    if (Math.abs(topE) > 12 || Math.abs(rawE) > 11) return null;
+    const ans = normSci(m, rawE);
+    if (ans.e === 0 || decimalPlaces(ans.m) > 3) return null;
+    const num = two ? row(par(sciExpr(a, p)), "·", par(sciExpr(b, q))) : sciExpr(a, p);
+    const den = sciExpr(c, s);
+    const traps: SciTrap[] = [
+      { ...normSci(m, topE + s), msg: `La raya de fracción divide: los exponentes se RESTAN, el de arriba menos el de abajo: ${topE} − ${withSign(s)} = ${rawE}.` },
+      { ...normSci(m, s - topE), msg: `Restaste al revés: es el exponente de arriba menos el de abajo: ${topE} − ${withSign(s)} = ${rawE}.` },
+      { ...normSci(c.div(top), rawE), msg: `Dividiste al revés: es lo de arriba dividido lo de abajo, ${ds(top)} : ${ds(c)}.` },
+    ];
+    if (two && p * q !== p + q) traps.push({ ...normSci(m, p * q - s), msg: `En el numerador se multiplican potencias de 10: los exponentes se suman, ${p} + ${withSign(q)} = ${topE}.` });
+    if (m.compare(F(10)) >= 0) traps.push({ m: m.div(F(10)), e: rawE, msg: `Al pasar ${ds(m)} a ${ds(m.div(F(10)))} lo dividiste por 10: el exponente tiene que subir 1 (queda ${ans.e}).` });
+    if (m.compare(ONE_F) < 0) traps.push({ m: m.mul(F(10)), e: rawE, msg: `Al pasar ${ds(m)} a ${ds(m.mul(F(10)))} lo multiplicaste por 10: el exponente tiene que bajar 1 (queda ${ans.e}).` });
+    return {
+      gen: "",
+      title: "Calculá y escribí el resultado en notación científica",
+      math: frac(num, den),
+      answer: { kind: "sci", m: ans.m, e: ans.e },
+      sciTraps: cleanSci(ans, traps.filter((t) => !t.m.isZero() && fractionToDecimalString(normSci(t.m, 0).m) !== null)),
+      hint: [
+        {
+          text: two
+            ? "Primero resolvé el numerador (al multiplicar, los exponentes se suman). Después la raya de fracción: dividí los primeros números y restá los exponentes, arriba menos abajo."
+            : "La raya de fracción es una división: dividí los primeros números y restá los exponentes, el de arriba menos el de abajo.",
+        },
+      ],
+      steps: [
+        ...(two
+          ? [
+              {
+                text: `Primero el numerador: ${ds(a)} · ${ds(b)} = ${ds(top)}, y los exponentes se suman: ${p} + ${withSign(q)} = ${topE}.`,
+                math: row(num, "=", sciExpr(top, topE)),
+              },
+            ]
+          : []),
+        {
+          text: `La raya de fracción es una división: ${ds(top)} : ${ds(c)} = ${ds(m)}, y los exponentes se restan: ${topE} − ${withSign(s)} = ${rawE}.`,
+          math: row(frac(sciExpr(top, topE), den), "=", sciExpr(m, rawE)),
+        },
+        ...normalizeStep(m, rawE),
+      ],
+      rule: "Una fracción es una división: arriba se resuelve primero, después se dividen los primeros números y se restan los exponentes (el de arriba menos el de abajo). Al final, el primer número tiene que quedar entre 1 y 10.",
+    } satisfies Question;
+  }),
+);
+
+/** 1 / (a·10^p): se invierte el primer número y el exponente cambia de signo. */
+export const ncInverso = gen("nc-inverso", (r) =>
+  retry(() => {
+    const a = parseF(r.pick(["2", "4", "5", "8", "1,25", "2,5", "1,6", "3,2"]));
+    const p = r.int(-6, 7);
+    if (p === 0) return null;
+    const inv = ONE_F.div(a);
+    const ans = normSci(inv, -p);
+    if (ans.e === 0 || decimalPlaces(ans.m) > 3) return null;
+    const asFrac = r.chance(0.6);
+    const traps: SciTrap[] = [
+      { ...normSci(inv, p), msg: `1 : 10^${p} es 10^${-p}: al dividir, el exponente cambia de signo.` },
+      { ...normSci(a, -p), msg: `El ${ds(a)} también se divide: 1 : ${ds(a)} = ${ds(inv)}.` },
+      { m: inv.mul(F(10)), e: -p, msg: `Al pasar ${ds(inv)} a ${ds(inv.mul(F(10)))} lo multiplicaste por 10: el exponente tiene que bajar 1 (queda ${ans.e}).` },
+    ];
+    return {
+      gen: "",
+      title: asFrac ? "Escribí el resultado en notación científica" : "¿Cuál es el inverso? Escribilo en notación científica",
+      ...(asFrac ? {} : { story: "El inverso de un número es 1 dividido ese número." }),
+      math: asFrac ? frac(N(1), sciExpr(a, p)) : sciExpr(a, p),
+      answer: { kind: "sci", m: ans.m, e: ans.e },
+      sciTraps: cleanSci(ans, traps),
+      hint: [{ text: "Dividí por separado: 1 dividido el primer número, y 1 dividido la potencia de 10 (el exponente cambia de signo). Después acomodá el primer número." }],
+      steps: [
+        {
+          text: `Dividimos por separado: 1 : ${ds(a)} = ${ds(inv)}, y 1 : 10^${p} = 10^${-p} (el exponente cambia de signo).`,
+          math: row(frac(N(1), sciExpr(a, p)), "=", sciExpr(inv, -p)),
+        },
+        ...normalizeStep(inv, -p),
+      ],
+      rule: "El inverso de a·10 elevado a n es (1 : a)·10 elevado a −n: se invierte el primer número y el exponente cambia de signo. Después se acomoda el primer número.",
+    } satisfies Question;
+  }),
+);

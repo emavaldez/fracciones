@@ -3057,3 +3057,145 @@ button {
 :root[data-look="choco"] .bm-t4 {
   fill: #b77b55;
 }
+
+/* ---------------- Borrador ---------------- */
+.scratch-btn {
+  position: relative;
+}
+.scratch-btn.has-ink::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cheese);
+}
+.scratch {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  padding: max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom));
+  gap: 6px;
+}
+.scratch-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.scratch-name {
+  font-family: var(--font-sign);
+  font-size: 1.4rem;
+  color: var(--tomato);
+}
+.scratch-q {
+  max-height: 24vh;
+  overflow: auto;
+  border-radius: 10px;
+  background: var(--paper-2);
+  padding: 6px 10px;
+  text-align: center;
+}
+.scratch-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.scratch-story {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  text-align: left;
+}
+.scratch-math {
+  margin-top: 4px;
+  overflow-x: auto;
+}
+.scratch-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.scratch-tool {
+  min-width: 42px;
+  height: 44px;
+  border: 2px solid var(--paper-line);
+  border-radius: 12px;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  padding: 0 6px;
+  touch-action: manipulation;
+}
+.scratch-tool.is-on {
+  border-color: var(--tomato);
+  box-shadow: 0 0 0 3px rgba(226, 64, 47, 0.18);
+}
+.scratch-tool:disabled {
+  opacity: 0.4;
+}
+.scratch-new {
+  margin-left: auto;
+}
+.scratch-sep {
+  width: 1px;
+  height: 28px;
+  background: var(--paper-line);
+}
+.scratch-paper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--paper-line);
+  /* hoja cuadriculada, con margen */
+  background-color: #fffefa;
+  background-image:
+    linear-gradient(90deg, transparent 33px, rgba(226, 64, 47, 0.35) 33px, rgba(226, 64, 47, 0.35) 35px, transparent 35px),
+    linear-gradient(rgba(70, 130, 200, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(70, 130, 200, 0.22) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    22px 22px,
+    22px 22px;
+}
+.scratch-canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+.scratch-canvas.is-eraser {
+  cursor: cell;
+}
+.scratch-empty {
+  position: absolute;
+  left: 44px;
+  right: 10px;
+  top: 12px;
+  margin: 0;
+  color: rgba(40, 40, 60, 0.4);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+@media (min-width: 820px) {
+  .scratch {
+    inset: 16px auto 16px 50%;
+    transform: translateX(-50%);
+    width: 760px;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+}

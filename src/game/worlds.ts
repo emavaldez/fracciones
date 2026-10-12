@@ -154,6 +154,7 @@ export const WORLDS: World[] = [
         nc.ncFraccionDe,
         nc.ncPotencia,
       ]),
+      lv("Fracciones con notación científica", "La raya de fracción divide: arriba menos abajo", [nc.ncCociente, nc.ncInverso, nc.ncFraccion, nc.ncFraccionDe]),
       boss("La Hormiga Contadora", "🐜", "Cuento granos de azúcar: millones. Y cada uno pesa casi nada. ¿Me ayudás?", [
         nc.ncEscribirChico,
         nc.ncADecimal,
@@ -162,6 +163,7 @@ export const WORLDS: World[] = [
         nc.ncDividir,
         nc.ncPotencia,
         nc.ncProblema,
+        nc.ncCociente,
       ]),
     ],
   },

@@ -5,6 +5,8 @@ import { TEXTS, findThemed, useLook, withLook } from "../look";
 import { AnswerDisplay, Keypad, applyKey, slotsFor, type Slot } from "../components/AnswerPad";
 import { NumberLine } from "../components/NumberLine";
 import { BarModel } from "../components/BarModel";
+import { Scratchpad, type Stroke } from "../components/Scratchpad";
+import { pzExpr } from "../game/pizarra";
 import { setGenLook } from "../game/theme";
 import { PizarraPath, PizarraStage, type PzSummary } from "../components/Pizarra";
 import { Steps } from "../components/Steps";
@@ -118,6 +120,9 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
   const [direct, setDirect] = useState(false);
   const [boardSummary, setPzSummary] = useState<PzSummary | null>(null);
   const [coins, setCoins] = useState(0);
+  // Borrador: lo que se escribe dura mientras se está en la misma comanda.
+  const [scratch, setScratch] = useState<Stroke[]>([]);
+  const [scratchOpen, setScratchOpen] = useState(false);
   const [streak, setStreak] = useState(0);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
@@ -144,6 +149,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     setRequeued(false);
     setDirect(false);
     setPzSummary(null);
+    setScratch([]);
+    setScratchOpen(false);
     setPhase("answer");
   }, []);
 
@@ -315,6 +322,8 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
         return;
       }
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      // Con el borrador abierto, el teclado no toca la comanda.
+      if (scratchOpen) return;
       // La mesa de ecuaciones maneja su propio teclado.
       if (boardMode && phase === "answer") return;
       if (ev.key === "Enter") {
@@ -354,7 +363,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [started, phase, q, submit, next, onKey, boardMode, nudge, setParts, draft.parts]);
+  }, [started, phase, q, submit, next, onKey, boardMode, nudge, setParts, draft.parts, scratchOpen]);
 
   useEffect(() => {
     if (phase === "feedback") feedbackRef.current?.focus();
@@ -442,6 +451,19 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
             ))}
           </div>
         )}
+        <button
+          type="button"
+          className={`icon-btn scratch-btn${scratch.length ? " has-ink" : ""}`}
+          onClick={() => setScratchOpen(true)}
+          aria-label="Abrir el borrador para hacer cuentas"
+          title="Borrador"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <rect x="3" y="3" width="14" height="18" rx="2" className="ico-line" />
+            <path d="M6.5 8h7M6.5 11.5h5" className="ico-line" />
+            <path d="M12 20l.9-3.4 7.4-7.4a1.6 1.6 0 0 1 2.3 2.3l-7.4 7.4z" className="ico-solid" />
+          </svg>
+        </button>
         <div className="coins" aria-label={`Propinas: ${coins} pesos`}>
           <span className="coin" aria-hidden="true">$</span>
           {coins}
@@ -461,7 +483,7 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
           spec={q.pizarra!}
           header={ticketHead}
           hintOn={hint}
-          disabled={phase !== "answer"}
+          disabled={phase !== "answer" || scratchOpen}
           ticketRef={ticketRef}
           onSolved={finishBoard}
           onDirect={() => {
@@ -621,6 +643,29 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
             )}
           </footer>
         </>
+      )}
+
+      {scratchOpen && (
+        <Scratchpad
+          strokes={scratch}
+          setStrokes={setScratch}
+          onClose={() => setScratchOpen(false)}
+          header={
+            <>
+              <p className="scratch-title">{q.title}</p>
+              {q.story && (
+                <p className="scratch-story">
+                  <RichText text={q.story} />
+                </p>
+              )}
+              {(q.math || q.pizarra) && (
+                <div className="scratch-math">
+                  <MathView e={q.math ?? pzExpr(q.pizarra!)} size="md" />
+                </div>
+              )}
+            </>
+          }
+        />
       )}
 
       {phase === "feedback" && verdict && (

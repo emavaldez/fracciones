@@ -5,14 +5,15 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
 
 ## Qué tiene
 
-- **11 sectores, 46 niveles** (3 o 4 niveles + 1 jefe por sector). Todos abiertos desde el principio: se elige qué jugar.
+- **11 sectores, 47 niveles** (3 o 4 niveles + 1 jefe por sector). Todos abiertos desde el principio: se elige qué jugar.
   1. El Mostrador: leer fracciones, equivalentes, simplificar, comparar (también con negativos)
   2. La Mesa de Amasado: números mixtos, decimales finitos y periódicos
   3. El Riel de Comandas: fracciones en la recta numérica (ubicar, leer, negativos, mixtos, rayitas que no coinciden con el denominador, encontrar el 1)
   4. El Horno: suma y resta
   5. La Tabla de Cortar: multiplicación, división, inverso, “fracción de”
   6. La Cámara de Fermentación: potencias, exponente 0 y negativo, propiedades
-  7. La Despensa: notación científica (escribir y leer números grandes y chicos, reconocer, comparar, multiplicar, dividir, potencias, problemas)
+  7. La Despensa: notación científica (escribir y leer números grandes y chicos, reconocer, comparar, multiplicar, dividir, potencias,
+     problemas, y fracciones con notación científica: cuentas con raya de fracción, inversos y "3/4 de 8·10⁶")
   8. La Huerta: raíces cuadradas, cúbicas, de decimales, propiedades y trampas
   9. La Cocina a Full: operaciones combinadas (términos, paréntesis, corchetes)
   10. La Receta Secreta: ecuaciones (uno y dos pasos, x en los dos miembros, potencias y raíces) y el número pensado
@@ -37,6 +38,9 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   enunciados de chocolatería, y chocolates como puntaje y como vidas.
 - **Repartos por partes, de a pasos**: primero qué parte del total quedó, después cuánto era el total y al final cuánto
   le tocó a cada uno, con un casillero por persona. La explicación los dibuja con un modelo de barras.
+- **Borrador**: el botón del lápiz, arriba de cada comanda, abre una hoja cuadriculada para hacer cuentas con el dedo o
+  el mouse (lápiz negro, azul o rojo, goma, deshacer y hoja nueva). Muestra la consigna arriba y lo escrito se mantiene
+  mientras se está en esa comanda.
 - **Ejercicios generados al azar**: cada partida es distinta.
 - **Explicación de errores**: si la respuesta coincide con un error típico (sumar denominadores, multiplicar en vez de dividir, elevar solo el numerador, olvidarse del signo, etc.), el juego dice exactamente qué pasó. Siempre muestra la resolución paso a paso y la regla para recordar.
 - **Revancha**: si se erra una comanda, más adelante aparece otra parecida.
@@ -105,7 +109,7 @@ src/
     pizarra.ts la pizarra: la cuenta como árbol, qué pedazos se pueden resolver solos, pasar al otro lado, pistas
   math/sci.ts  notación científica exacta (normalizar, comparar, decimales con miles separados)
   look.tsx     pizzería o chocolatería: textos, nombres de sectores y jefes, y cómo se reescriben las consignas
-  components/  dibujo de fracciones/potencias/raíces, pizzas y tabletas, recta numérica, modelo de barras, teclado
+  components/  dibujo de fracciones/potencias/raíces, pizzas y tabletas, recta numérica, modelo de barras, borrador, teclado
   screens/     portada, mapa, partida, resultados
 tests/         pruebas de los generadores
 ```
