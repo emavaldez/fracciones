@@ -38,8 +38,8 @@ El jugador atiende una pizzería: cada sector de la cocina es un tema y cada eje
   enunciados de chocolatería, y chocolates como puntaje y como vidas.
 - **Repartos por partes, de a pasos**: primero qué parte del total quedó, después cuánto era el total y al final cuánto
   le tocó a cada uno, con un casillero por persona. La explicación los dibuja con un modelo de barras.
-- **Borrador**: el botón del lápiz, arriba de cada comanda, abre una hoja cuadriculada para hacer cuentas con el dedo o
-  el mouse (lápiz negro, azul o rojo, goma, deshacer y hoja nueva). Muestra la consigna arriba y lo escrito se mantiene
+- **Borrador**: el botón «✏️ Borrador», en la comanda al lado de «Pista» (también en la pizarra), abre una hoja
+  cuadriculada para hacer cuentas con el dedo o el mouse (lápiz negro, azul o rojo, goma, deshacer y hoja nueva). Muestra la consigna arriba y lo escrito se mantiene
   mientras se está en esa comanda.
 - **Ejercicios generados al azar**: cada partida es distinta.
 - **Explicación de errores**: si la respuesta coincide con un error típico (sumar denominadores, multiplicar en vez de dividir, elevar solo el numerador, olvidarse del signo, etc.), el juego dice exactamente qué pasó. Siempre muestra la resolución paso a paso y la regla para recordar.

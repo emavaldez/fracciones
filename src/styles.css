@@ -3059,18 +3059,51 @@ button {
 }
 
 /* ---------------- Borrador ---------------- */
+.ticket-tools {
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+}
+.ticket-tools .btn-small {
+  padding: 6px 12px;
+}
 .scratch-btn {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
+.scratch-btn svg {
+  flex: none;
+}
+/* Si ya hay cuentas en la hoja, un puntito lo avisa. */
 .scratch-btn.has-ink::after {
   content: "";
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
+  top: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--cheese);
+  background: var(--tomato);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+/* Si los botones no entran al lado del cliente (pantallas angostas, nombres largos), bajan a otra fila. */
+.ticket-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.ticket-customer {
+  flex: 1 1 0;
+  min-width: auto;
+}
+.ticket-tools {
+  margin-left: auto;
+}
+@media (max-width: 359px) {
+  .ticket-tools .btn-small {
+    padding: 6px 10px;
+  }
 }
 .scratch {
   position: fixed;

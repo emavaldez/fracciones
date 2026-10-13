@@ -415,11 +415,25 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
             <span className="ticket-table">{isBoss ? "Mesa VIP" : `Mesa ${table}`}</span>
           </span>
         </span>
-        {phase === "answer" && !hint && (
-          <button type="button" className="btn btn-ghost btn-small" onClick={() => setHint(true)}>
-            Pista
+        <span className="ticket-tools">
+          <button
+            type="button"
+            className={`btn btn-ghost btn-small scratch-btn${scratch.length ? " has-ink" : ""}`}
+            onClick={() => setScratchOpen(true)}
+            aria-label={scratch.length ? "Borrador (ya tiene cuentas)" : "Borrador: abrir una hoja para hacer cuentas"}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M4 20l1.2-4.6L15.8 4.8a2 2 0 0 1 2.8 0l.6.6a2 2 0 0 1 0 2.8L8.6 18.8z" className="ico-line" />
+              <path d="M13.5 7l3.5 3.5" className="ico-line" />
+            </svg>
+            <span className="scratch-btn-text">Borrador</span>
           </button>
-        )}
+          {phase === "answer" && !hint && (
+            <button type="button" className="btn btn-ghost btn-small" onClick={() => setHint(true)}>
+              Pista
+            </button>
+          )}
+        </span>
       </div>
       {q.story && !(boardMode && q.gen.startsWith("w8")) && (
         <p className="ticket-story">
@@ -451,19 +465,6 @@ export function Play({ levelId, onExit, onFinish }: { levelId: string; onExit: (
             ))}
           </div>
         )}
-        <button
-          type="button"
-          className={`icon-btn scratch-btn${scratch.length ? " has-ink" : ""}`}
-          onClick={() => setScratchOpen(true)}
-          aria-label="Abrir el borrador para hacer cuentas"
-          title="Borrador"
-        >
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <rect x="3" y="3" width="14" height="18" rx="2" className="ico-line" />
-            <path d="M6.5 8h7M6.5 11.5h5" className="ico-line" />
-            <path d="M12 20l.9-3.4 7.4-7.4a1.6 1.6 0 0 1 2.3 2.3l-7.4 7.4z" className="ico-solid" />
-          </svg>
-        </button>
         <div className="coins" aria-label={`Propinas: ${coins} pesos`}>
           <span className="coin" aria-hidden="true">$</span>
           {coins}
